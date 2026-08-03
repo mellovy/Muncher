@@ -695,10 +695,18 @@ function renderFolders(){
     });
     item.querySelector('.folder-edit').addEventListener('click', (e) => {
       e.stopPropagation();
+      if(isLocked && !isUnlocked){
+        openPinPrompt(f.id, 'edit');
+        return;
+      }
       openEditFolderModal(f);
     });
     item.querySelector('.folder-delete').addEventListener('click', (e) => {
       e.stopPropagation();
+      if(isLocked && !isUnlocked){
+        openPinPrompt(f.id, 'delete');
+        return;
+      }
       deleteFolder(f.id);
     });
     const lockToggle = item.querySelector('.folder-lock-toggle');
@@ -717,6 +725,10 @@ function renderFolders(){
     }
     item.addEventListener('dblclick', (e) => {
       if(e.target.closest('.folder-delete') || e.target.closest('.folder-lock-toggle') || e.target.closest('.folder-edit')) return;
+      if(isLocked && !isUnlocked){
+        openPinPrompt(f.id, 'edit');
+        return;
+      }
       openEditFolderModal(f);
     });
     addFolderDropTarget(item, f.id);
@@ -725,8 +737,11 @@ function renderFolders(){
 
 }
 
-function openPinPrompt(folderId){
+let pendingUnlockPurpose = 'open'; // 'open' = enter the folder, 'edit' = open the edit-folder modal, 'delete' = delete the folder
+
+function openPinPrompt(folderId, purpose){
   pendingUnlockFolderId = folderId;
+  pendingUnlockPurpose = purpose || 'open';
   const folder = folders.find(f => f.id === folderId);
   document.getElementById('pinPromptLabel').textContent = folder ? `Unlock "${folder.name}"` : 'This folder is locked';
   document.getElementById('pinPromptInput').value = '';
@@ -737,21 +752,30 @@ function openPinPrompt(folderId){
 document.getElementById('pinCancelBtn').addEventListener('click', () => {
   document.getElementById('pinOverlay').classList.remove('show');
   pendingUnlockFolderId = null;
+  pendingUnlockPurpose = 'open';
 });
-addBackdropClose(document.getElementById('pinOverlay'), () => { pendingUnlockFolderId = null; });
+addBackdropClose(document.getElementById('pinOverlay'), () => { pendingUnlockFolderId = null; pendingUnlockPurpose = 'open'; });
 document.getElementById('pinUnlockBtn').addEventListener('click', () => {
   const folder = folders.find(f => f.id === pendingUnlockFolderId);
   const entered = document.getElementById('pinPromptInput').value;
   if(!folder) return;
   if(entered === folder.pin){
     unlockedFolders.add(folder.id);
-    activeFolder = folder.id;
-    currentPage = 1;
     document.getElementById('pinOverlay').classList.remove('show');
     pendingUnlockFolderId = null;
-    renderFolders();
-    render();
-    showToast('FOLDER UNLOCKED');
+    if(pendingUnlockPurpose === 'edit'){
+      renderFolders();
+      openEditFolderModal(folder);
+    }else if(pendingUnlockPurpose === 'delete'){
+      deleteFolder(folder.id);
+    }else{
+      activeFolder = folder.id;
+      currentPage = 1;
+      renderFolders();
+      render();
+      showToast('FOLDER UNLOCKED');
+    }
+    pendingUnlockPurpose = 'open';
   }else{
     showToast('WRONG PIN');
     document.getElementById('pinPromptInput').value = '';

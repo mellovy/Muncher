@@ -1,6 +1,6 @@
 {
   "name": "muncher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MUNCHER - custom game launcher",
   "main": "main.js",
   "repository": {
