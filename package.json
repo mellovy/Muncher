@@ -29,7 +29,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "muncher.ico"
+      "icon": "build/muncher.ico"
     },
     "nsis": {
       "oneClick": false,
