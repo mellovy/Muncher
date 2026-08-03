@@ -910,6 +910,47 @@ input[type="text"]:focus, select:focus{ border-color:var(--red); }
   line-height:1.5;
   margin:0 0 22px;
 }
+.update-modal{ max-width:440px; }
+.update-notes-wrap{
+  max-height:180px;
+  overflow-y:auto;
+  background:var(--bg);
+  border:1px solid var(--border-soft);
+  border-radius:8px;
+  padding:12px 14px;
+  margin:0 0 22px;
+}
+.update-notes{
+  margin:0;
+  color:var(--text-dim);
+  font-size:13px;
+  line-height:1.6;
+  font-family:inherit;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.update-progress-wrap{ margin:0 0 22px; }
+.update-progress-bar{
+  width:100%;
+  height:8px;
+  background:var(--field-bg);
+  border:1px solid var(--input-border);
+  border-radius:5px;
+  overflow:hidden;
+}
+.update-progress-fill{
+  height:100%;
+  width:0%;
+  background:var(--red);
+  transition:width .2s ease;
+}
+.update-progress-label{
+  margin-top:8px;
+  font-size:12px;
+  letter-spacing:1px;
+  color:var(--text-dimmer);
+  text-align:right;
+}
 .btn.danger-btn{
   background:var(--red);
 }

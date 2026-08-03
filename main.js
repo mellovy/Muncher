@@ -73,19 +73,25 @@ function createWindow(){
   win.on('close', (e) => {
     if (forceQuit || activeLaunches.size === 0) return;
     e.preventDefault();
-    const choice = dialog.showMessageBoxSync(win, {
-      type: 'warning',
-      buttons: ['Cancel', 'Quit Anyway'],
-      defaultId: 0,
-      cancelId: 0,
-      title: 'Game session in progress',
-      message: 'Muncher is still tracking playtime for a running game.',
-      detail: 'Quitting now will stop tracking that session\'s playtime. Quit anyway?'
+    askRenderer(win, 'quit-confirm-request', null, 'quit-confirm-response').then((confirmed) => {
+      if (confirmed) {
+        forceQuit = true;
+        win.close();
+      }
     });
-    if (choice === 1) {
-      forceQuit = true;
-      win.close();
-    }
+  });
+}
+
+// Sends a themed-prompt request to the renderer and resolves once the user
+// makes a choice there — this is the async stand-in for the native
+// dialog.showMessageBox()/showMessageBoxSync() calls we used to use, so every
+// prompt renders as an in-app modal that matches the rest of the UI instead
+// of an OS-native dialog.
+function askRenderer(win, channel, payload, responseChannel) {
+  return new Promise((resolve) => {
+    if (!win || win.isDestroyed()) return resolve(undefined);
+    ipcMain.once(responseChannel, (event, data) => resolve(data));
+    win.webContents.send(channel, payload);
   });
 }
 
@@ -109,19 +115,15 @@ function formatReleaseNotes(notes) {
 
 function setupAutoUpdater(win) {
   autoUpdater.on('update-available', async (info) => {
-    const { response } = await dialog.showMessageBox(win, {
-      type: 'info',
-      title: 'Update available',
-      message: `Muncher ${info.version} is available (you have ${app.getVersion()}).`,
-      detail: formatReleaseNotes(info.releaseNotes),
-      buttons: ['Install now', 'Later'],
-      defaultId: 0,
-      cancelId: 1,
-      noLink: true
-    });
     manualUpdateCheck = false;
-    if (response === 0) {
-      win.webContents.send('update-status', { status: 'downloading' });
+    const action = await askRenderer(win, 'update-prompt', {
+      type: 'available',
+      version: info.version,
+      currentVersion: app.getVersion(),
+      notes: formatReleaseNotes(info.releaseNotes)
+    }, 'update-response');
+    if (action === 'install') {
+      win.webContents.send('update-status', { status: 'downloading', percent: 0 });
       autoUpdater.downloadUpdate().catch(() => {});
     }
   });
@@ -134,47 +136,37 @@ function setupAutoUpdater(win) {
 
   autoUpdater.on('update-downloaded', async (info) => {
     if (win && !win.isDestroyed()) {
-      win.webContents.send('update-status', { status: 'ready' });
+      win.webContents.send('update-status', { status: 'downloaded' });
     }
-    const { response } = await dialog.showMessageBox(win, {
-      type: 'info',
-      title: 'Update ready to install',
-      message: `Muncher ${info.version} has finished downloading.`,
-      detail: 'Restart now to install it, or it will install automatically the next time you quit Muncher.',
-      buttons: ['Restart now', 'Later'],
-      defaultId: 0,
-      cancelId: 1,
-      noLink: true
-    });
-    if (response === 0) {
+    const action = await askRenderer(win, 'update-prompt', {
+      type: 'ready',
+      version: info.version
+    }, 'update-response');
+    if (action === 'restart') {
       forceQuit = true;
       autoUpdater.quitAndInstall();
     }
   });
 
-  autoUpdater.on('update-not-available', () => {
+  autoUpdater.on('update-not-available', async () => {
     if (win && !win.isDestroyed()) win.webContents.send('update-status', { status: 'idle' });
     if (manualUpdateCheck) {
-      dialog.showMessageBox(win, {
-        type: 'info',
-        title: 'No updates',
-        message: "You're up to date.",
-        detail: `Muncher ${app.getVersion()} is the latest version.`
-      });
+      await askRenderer(win, 'update-prompt', {
+        type: 'none',
+        currentVersion: app.getVersion()
+      }, 'update-response');
     }
     manualUpdateCheck = false;
   });
 
-  autoUpdater.on('error', (err) => {
+  autoUpdater.on('error', async (err) => {
     if (win && !win.isDestroyed()) win.webContents.send('update-status', { status: 'idle' });
     console.error('[autoUpdater]', err);
     if (manualUpdateCheck) {
-      dialog.showMessageBox(win, {
+      await askRenderer(win, 'update-prompt', {
         type: 'error',
-        title: 'Update check failed',
-        message: "Couldn't check for updates.",
-        detail: (err && err.message) || String(err)
-      });
+        reason: (err && err.message) || String(err)
+      }, 'update-response');
     }
     manualUpdateCheck = false;
   });

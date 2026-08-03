@@ -300,6 +300,24 @@
   </div>
 </div>
 
+<div class="overlay" id="updateOverlay">
+  <div class="modal update-modal">
+    <h2 id="updateTitle">UPDATE AVAILABLE</h2>
+    <p id="updateMessage" class="confirm-message"></p>
+    <div class="update-notes-wrap" id="updateNotesWrap">
+      <pre class="update-notes" id="updateNotes"></pre>
+    </div>
+    <div class="update-progress-wrap" id="updateProgressWrap" style="display:none;">
+      <div class="update-progress-bar"><div class="update-progress-fill" id="updateProgressFill"></div></div>
+      <div class="update-progress-label" id="updateProgressLabel">0%</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="updateLaterBtn">Later</button>
+      <button class="btn" id="updateOkBtn">Install now</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="detailOverlay">
   <div class="detail-modal">
     <div class="detail-banner no-image" id="detailBanner">
@@ -2317,10 +2335,30 @@ document.getElementById('replayTutorialBtn').addEventListener('click', () => {
 });
 
 // --- Auto-updates ---------------------------------------------------------
-// Actual update prompts (with changelog) and the download/install flow live
-// in main.js and use native dialogs; here we just show the current version,
-// let the user trigger a manual check, and surface lightweight toasts for
-// progress that happens in the background.
+// The update prompts (with changelog), the download progress meter, and the
+// ready-to-restart prompt all render as an in-app modal here — main.js just
+// tells us what state to show and we report the user's choice back, so
+// nothing pops up as a native OS dialog.
+const updateOverlay = document.getElementById('updateOverlay');
+const updateTitle = document.getElementById('updateTitle');
+const updateMessage = document.getElementById('updateMessage');
+const updateNotesWrap = document.getElementById('updateNotesWrap');
+const updateNotes = document.getElementById('updateNotes');
+const updateProgressWrap = document.getElementById('updateProgressWrap');
+const updateProgressFill = document.getElementById('updateProgressFill');
+const updateProgressLabel = document.getElementById('updateProgressLabel');
+const updateLaterBtn = document.getElementById('updateLaterBtn');
+const updateOkBtn = document.getElementById('updateOkBtn');
+
+function closeUpdateOverlay(action){
+  updateOverlay.classList.remove('show');
+  if (window.electronAPI && window.electronAPI.respondUpdate) {
+    window.electronAPI.respondUpdate(action);
+  }
+}
+updateLaterBtn.addEventListener('click', () => closeUpdateOverlay('later'));
+updateOkBtn.addEventListener('click', () => closeUpdateOverlay(updateOkBtn.dataset.action || 'ok'));
+
 (async function initUpdatesUI(){
   const versionLabel = document.getElementById('versionLabel');
   const checkBtn = document.getElementById('checkUpdatesBtn');
@@ -2346,14 +2384,78 @@ document.getElementById('replayTutorialBtn').addEventListener('click', () => {
     }
   });
 
+  if (window.electronAPI.promptUpdate) {
+    window.electronAPI.promptUpdate((data) => {
+      if (!data) return;
+      updateNotesWrap.style.display = 'none';
+      updateProgressWrap.style.display = 'none';
+      updateLaterBtn.style.display = '';
+      updateOkBtn.style.display = '';
+
+      if (data.type === 'available') {
+        updateTitle.textContent = 'UPDATE AVAILABLE';
+        updateMessage.textContent = `Muncher v${data.version} is available — you have v${data.currentVersion}.`;
+        updateNotesWrap.style.display = '';
+        updateNotes.textContent = data.notes || 'No changelog was provided for this release.';
+        updateOkBtn.textContent = 'Install now';
+        updateOkBtn.dataset.action = 'install';
+        updateLaterBtn.textContent = 'Later';
+      } else if (data.type === 'ready') {
+        updateTitle.textContent = 'UPDATE READY';
+        updateMessage.textContent = `Muncher v${data.version} has finished downloading. Restart now to install it, or it'll install automatically next time you quit.`;
+        updateOkBtn.textContent = 'Restart now';
+        updateOkBtn.dataset.action = 'restart';
+        updateLaterBtn.textContent = 'Later';
+      } else if (data.type === 'none') {
+        updateTitle.textContent = 'NO UPDATES';
+        updateMessage.textContent = `Muncher v${data.currentVersion} is the latest version.`;
+        updateOkBtn.textContent = 'OK';
+        updateOkBtn.dataset.action = 'ok';
+        updateLaterBtn.style.display = 'none';
+      } else if (data.type === 'error') {
+        updateTitle.textContent = 'UPDATE CHECK FAILED';
+        updateMessage.textContent = data.reason || "Couldn't check for updates.";
+        updateOkBtn.textContent = 'OK';
+        updateOkBtn.dataset.action = 'ok';
+        updateLaterBtn.style.display = 'none';
+      }
+      updateOverlay.classList.add('show');
+    });
+  }
+
   if (window.electronAPI.onUpdateStatus) {
     window.electronAPI.onUpdateStatus((data) => {
       if (!data) return;
+      const overlayIsUpdate = updateOverlay.classList.contains('show');
       if (data.status === 'downloading') {
-        showToast(typeof data.percent === 'number' ? `Downloading update... ${data.percent}%` : 'Downloading update...', { duration: 2500 });
-      } else if (data.status === 'ready') {
+        if (overlayIsUpdate) {
+          // Update the same modal in place with a real progress bar instead
+          // of a stream of toasts.
+          updateTitle.textContent = 'DOWNLOADING UPDATE';
+          updateMessage.textContent = 'Downloading the update in the background — feel free to keep using Muncher.';
+          updateNotesWrap.style.display = 'none';
+          updateProgressWrap.style.display = '';
+          updateLaterBtn.style.display = 'none';
+          updateOkBtn.style.display = 'none';
+          const pct = typeof data.percent === 'number' ? data.percent : 0;
+          updateProgressFill.style.width = pct + '%';
+          updateProgressLabel.textContent = pct + '%';
+        } else {
+          showToast(typeof data.percent === 'number' ? `Downloading update... ${data.percent}%` : 'Downloading update...', { duration: 2500 });
+        }
+      } else if (data.status === 'downloaded' && !overlayIsUpdate) {
         showToast('Update downloaded — ready to install.', { duration: 3000 });
       }
+    });
+  }
+
+  if (window.electronAPI.promptQuitConfirm) {
+    window.electronAPI.promptQuitConfirm(async () => {
+      const confirmed = await showConfirm(
+        "Quitting now will stop tracking that session's playtime. Quit anyway?",
+        { title: 'GAME SESSION IN PROGRESS', confirmLabel: 'Quit Anyway', danger: true }
+      );
+      window.electronAPI.respondQuitConfirm(confirmed);
     });
   }
 })();
