@@ -1765,15 +1765,18 @@ document.getElementById('settingsCloseBtn').addEventListener('click', () => {
 addBackdropClose(document.getElementById('settingsOverlay'));
 
 function computeStats(){
-  const totalSeconds = games.reduce((sum, g) => sum + (g.playtime || 0), 0);
+  // Exclude games sitting in a PIN-locked folder that hasn't been unlocked this session,
+  // so locked-away games don't leak into totals, most-played, etc.
+  const visibleGames = games.filter(g => isFolderVisible(g.folder));
+  const totalSeconds = visibleGames.reduce((sum, g) => sum + (g.playtime || 0), 0);
   let mostPlayed = null;
-  games.forEach(g => {
+  visibleGames.forEach(g => {
     if((g.playtime || 0) > 0 && (!mostPlayed || g.playtime > mostPlayed.playtime)) mostPlayed = g;
   });
   const now = Date.now();
   const weekMs = 7 * 86400000;
   let thisWeek = 0, lastWeek = 0, longestSession = 0;
-  games.forEach(g => {
+  visibleGames.forEach(g => {
     (g.sessions || []).forEach(s => {
       const age = now - s.start;
       if(age >= 0 && age < weekMs) thisWeek += s.seconds;
@@ -1781,18 +1784,19 @@ function computeStats(){
       if(s.seconds > longestSession) longestSession = s.seconds;
     });
   });
-  const neverPlayed = games.filter(g => !(g.playtime > 0)).length;
-  const topPlayed = games.filter(g => (g.playtime || 0) > 0).sort((a,b) => b.playtime - a.playtime).slice(0, 5);
+  const neverPlayed = visibleGames.filter(g => !(g.playtime > 0)).length;
+  const topPlayed = visibleGames.filter(g => (g.playtime || 0) > 0).sort((a,b) => b.playtime - a.playtime).slice(0, 5);
   const folderBreakdown = folders
+    .filter(f => !f.pin || unlockedFolders.has(f.id))
     .map(f => ({
       name: f.name,
       color: f.color,
-      count: games.filter(g => g.folder === f.id).length
+      count: visibleGames.filter(g => g.folder === f.id).length
     }))
     .filter(f => f.count > 0)
     .sort((a,b) => b.count - a.count);
-  const unfiledCount = games.filter(g => !g.folder).length;
-  return { totalSeconds, mostPlayed, thisWeek, lastWeek, gameCount: games.length, neverPlayed, topPlayed, folderBreakdown, unfiledCount, longestSession };
+  const unfiledCount = visibleGames.filter(g => !g.folder).length;
+  return { totalSeconds, mostPlayed, thisWeek, lastWeek, gameCount: visibleGames.length, neverPlayed, topPlayed, folderBreakdown, unfiledCount, longestSession };
 }
 
 function renderStats(){
