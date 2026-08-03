@@ -12,5 +12,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fetchGameHeader: (gameName) => ipcRenderer.invoke('fetch-game-header', gameName),
   fetchImageData: (url) => ipcRenderer.invoke('fetch-image-data', url),
   checkPaths: (exePaths) => ipcRenderer.invoke('check-paths', exePaths),
-  onGameSessionEnded: (callback) => ipcRenderer.on('game-session-ended', (event, data) => callback(data))
+  onGameSessionEnded: (callback) => ipcRenderer.on('game-session-ended', (event, data) => callback(data)),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  onUpdateStatus: (callback) => ipcRenderer.on('update-status', (event, data) => callback(data))
 });

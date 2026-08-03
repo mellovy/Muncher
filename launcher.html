@@ -256,6 +256,14 @@
       </div>
     </div>
 
+    <div class="settings-row">
+      <div class="field">
+        <label>About</label>
+        <div class="note" id="versionLabel">Muncher</div>
+        <button class="stack-btn" id="checkUpdatesBtn">Check for updates</button>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn ghost" id="settingsCloseBtn">Close</button>
     </div>
@@ -2283,6 +2291,48 @@ document.getElementById('replayTutorialBtn').addEventListener('click', () => {
   document.getElementById('settingsOverlay').classList.remove('show');
   showTutorial();
 });
+
+// --- Auto-updates ---------------------------------------------------------
+// Actual update prompts (with changelog) and the download/install flow live
+// in main.js and use native dialogs; here we just show the current version,
+// let the user trigger a manual check, and surface lightweight toasts for
+// progress that happens in the background.
+(async function initUpdatesUI(){
+  const versionLabel = document.getElementById('versionLabel');
+  const checkBtn = document.getElementById('checkUpdatesBtn');
+  if (!window.electronAPI || !window.electronAPI.getAppVersion) return;
+  try {
+    const version = await window.electronAPI.getAppVersion();
+    versionLabel.textContent = `Muncher v${version}`;
+  } catch (e) {}
+
+  checkBtn.addEventListener('click', async () => {
+    checkBtn.disabled = true;
+    const originalText = checkBtn.textContent;
+    checkBtn.textContent = 'Checking...';
+    showToast('Checking for updates...');
+    try {
+      const result = await window.electronAPI.checkForUpdates();
+      if (result && result.ok === false) {
+        showToast(result.reason || "Couldn't check for updates.");
+      }
+    } finally {
+      checkBtn.disabled = false;
+      checkBtn.textContent = originalText;
+    }
+  });
+
+  if (window.electronAPI.onUpdateStatus) {
+    window.electronAPI.onUpdateStatus((data) => {
+      if (!data) return;
+      if (data.status === 'downloading') {
+        showToast(typeof data.percent === 'number' ? `Downloading update... ${data.percent}%` : 'Downloading update...', { duration: 2500 });
+      } else if (data.status === 'ready') {
+        showToast('Update downloaded — ready to install.', { duration: 3000 });
+      }
+    });
+  }
+})();
 
 loadData();
 

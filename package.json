@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "MUNCHER - custom game launcher",
   "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/muncher.git"
+  },
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win"
@@ -30,6 +34,19 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "mellovy",
+        "repo": "muncher"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
   }
 }
