@@ -1,0 +1,514 @@
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, globalShortcut } = require('electron');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// Muncher is a single-window utility — a second launch should just focus the
+// existing window instead of spinning up a whole second Chromium renderer.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+}
+
+// No File/Edit/View menu is used anywhere in this app — removing it outright
+// (rather than just hiding it via autoHideMenuBar) skips building it at all.
+Menu.setApplicationMenu(null);
+
+// Keeps the renderer's V8 heap ceiling modest — this is a game list, not a
+// heavyweight app, and it stops idle memory from creeping up over a long
+// session (e.g. sitting minimized for hours while a game runs).
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=192');
+
+// exePaths of spawned games we're currently tracking playtime for — used to
+// warn before quitting so a session in progress doesn't lose its playtime.
+const activeLaunches = new Set();
+let forceQuit = false;
+
+function createWindow(){
+  const win = new BrowserWindow({
+    width: 1100,
+    height: 700,
+    backgroundColor: '#050505',
+    autoHideMenuBar: true,
+    show: false,
+    icon: path.join(__dirname, 'muncher.ico'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      spellcheck: false,
+      backgroundThrottling: true
+    }
+  });
+  win.once('ready-to-show', () => win.show());
+  win.setMenuBarVisibility(false);
+  win.loadFile('launcher.html');
+
+  // While minimized there's nothing to render, so occlusion-based throttling
+  // (backgroundThrottling) already halts timers/rAF — this just also drops
+  // the compositor's offscreen backing store instead of keeping it warm,
+  // since a game launcher sitting minimized behind a running game shouldn't
+  // be holding onto GPU/CPU it isn't using.
+  win.on('minimize', () => {
+    win.webContents.setBackgroundThrottling(true);
+  });
+
+  win.on('close', (e) => {
+    if (forceQuit || activeLaunches.size === 0) return;
+    e.preventDefault();
+    const choice = dialog.showMessageBoxSync(win, {
+      type: 'warning',
+      buttons: ['Cancel', 'Quit Anyway'],
+      defaultId: 0,
+      cancelId: 0,
+      title: 'Game session in progress',
+      message: 'Muncher is still tracking playtime for a running game.',
+      detail: 'Quitting now will stop tracking that session\'s playtime. Quit anyway?'
+    });
+    if (choice === 1) {
+      forceQuit = true;
+      win.close();
+    }
+  });
+}
+
+if (gotLock) {
+  app.whenReady().then(() => {
+    createWindow();
+    // Toggle: brings the window to front if it's minimized/hidden/unfocused,
+    // otherwise minimizes it back out of the way. Works globally, i.e. even
+    // while a game has focus, since this is meant to sit backgrounded during play.
+    globalShortcut.register('CommandOrControl+Shift+M', () => {
+      const win = BrowserWindow.getAllWindows()[0];
+      if (!win) return;
+      if (win.isVisible() && win.isFocused()) {
+        win.minimize();
+      } else {
+        if (win.isMinimized()) win.restore();
+        win.show();
+        win.focus();
+      }
+    });
+  });
+}
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+ipcMain.handle('pick-folder', async (event, defaultPath) => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+    defaultPath: defaultPath || undefined
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('pick-exe', async (event, defaultPath) => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    defaultPath: defaultPath || undefined,
+    filters: [{ name: 'Executable', extensions: ['exe'] }]
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+const JUNK_EXE_PATTERNS = [
+  /^unins/i, /uninstall/i, /crashpad/i, /crashhandler/i, /crash_report/i,
+  /vcredist/i, /vc_redist/i, /dxsetup/i, /dotnetfx/i, /dotnet.*redist/i,
+  /redist/i, /^setup\.exe$/i, /prereq/i, /easyanticheat/i, /^eac/i,
+  /battleye/i, /^python/i, /^curl/i, /^7z/i, /directx/i, /^report/i,
+  /helper\.exe$/i, /updater\.exe$/i, /update\.exe$/i
+];
+
+function isJunkExe(name){
+  return JUNK_EXE_PATTERNS.some(p => p.test(name));
+}
+
+function normalizeName(s){
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findGameExeCandidates(topDir, topDirBaseName){
+  const candidates = [];
+  function walk(dir, depth){
+    if (depth > 8) return;
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch(e){ return; }
+    for (const entry of entries){
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()){
+        walk(full, depth + 1);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.exe')){
+        candidates.push({ path: full, name: entry.name, depth });
+      }
+    }
+  }
+  walk(topDir, 0);
+  if (candidates.length === 0) return null;
+
+  const filtered = candidates.filter(c => !isJunkExe(c.name));
+  const pool = filtered.length > 0 ? filtered : candidates;
+  const folderNorm = normalizeName(topDirBaseName);
+
+  let best = pool[0];
+  let bestScore = -Infinity;
+  for (const c of pool){
+    const nameNorm = normalizeName(c.name.replace(/\.exe$/i, ''));
+    let score = 0;
+    if (nameNorm === folderNorm) score += 200;
+    else if (folderNorm.includes(nameNorm) || nameNorm.includes(folderNorm)) score += 100;
+    // Depth is a much weaker signal than it used to be — real executables are
+    // routinely nested a folder or two down (e.g. GameName/GameName/Game.exe,
+    // or Unreal's Binaries/Win64), so a small penalty keeps ties sane without
+    // letting a shallow decoy beat the actual game exe further down.
+    score -= c.depth * 3;
+    try { score += fs.statSync(c.path).size / 1000000; } catch(e){}
+    if (score > bestScore){ bestScore = score; best = c; }
+  }
+  return best.path;
+}
+
+const STEAM_NAME_DENYLIST = [
+  /^steamworks common redistributables$/i,
+  /^steam linux runtime/i,
+  /^proton\b/i,
+  /redistributables?$/i
+];
+
+function getSteamInstallPath(){
+  const candidates = [
+    'C:\\Program Files (x86)\\Steam',
+    'C:\\Program Files\\Steam'
+  ];
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync('reg query "HKCU\\Software\\Valve\\Steam" /v SteamPath', { windowsHide: true }).toString();
+    const match = out.match(/SteamPath\s+REG_SZ\s+(.+)/i);
+    if (match) candidates.unshift(match[1].trim().replace(/\//g, path.sep));
+  } catch (e) {}
+  return candidates.find(p => { try { return fs.existsSync(p); } catch(e){ return false; } }) || null;
+}
+
+function getSteamLibraryFolders(steamPath){
+  const libraries = [steamPath];
+  const vdfPath = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
+  try {
+    const content = fs.readFileSync(vdfPath, 'utf8');
+    const matches = content.matchAll(/"path"\s+"([^"]+)"/g);
+    for (const m of matches) {
+      const libPath = m[1].replace(/\\\\/g, '\\');
+      if (!libraries.includes(libPath)) libraries.push(libPath);
+    }
+  } catch (e) {}
+  return libraries;
+}
+
+// --- Steam playtime import -------------------------------------------------
+// Playtime isn't in the .acf manifests — it lives in each local Steam user's
+// localconfig.vdf under userdata/<id>/config/. VDF nests with braces (and
+// "tags" sub-blocks nest further), so a flat regex can't safely extract a
+// single app's block; we walk brace-matched instead.
+function extractVdfBlock(content, fromIndex, key){
+  const marker = `"${key}"`;
+  const idx = content.indexOf(marker, fromIndex);
+  if (idx === -1) return null;
+  let i = idx + marker.length;
+  while (i < content.length && content[i] !== '{' && content[i] !== '"') i++;
+  if (content[i] !== '{') return null;
+  let depth = 0, start = i;
+  for (; i < content.length; i++) {
+    if (content[i] === '{') depth++;
+    else if (content[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+  }
+  return { block: content.slice(start, i), endIndex: i };
+}
+
+function findLocalconfigPaths(steamPath){
+  const userdataDir = path.join(steamPath, 'userdata');
+  let dirs;
+  try { dirs = fs.readdirSync(userdataDir, { withFileTypes: true }).filter(d => d.isDirectory()); } catch (e) { return []; }
+  const paths = [];
+  for (const d of dirs) {
+    const p = path.join(userdataDir, d.name, 'config', 'localconfig.vdf');
+    try { if (fs.existsSync(p)) paths.push(p); } catch (e) {}
+  }
+  return paths;
+}
+
+// Returns a Map<appid, minutes> merged across every local Steam user profile
+// found (covers shared/family PCs where the wrong profile might be active).
+function getSteamPlaytimes(steamPath){
+  const playtimes = new Map();
+  for (const cfgPath of findLocalconfigPaths(steamPath)) {
+    try {
+      const content = fs.readFileSync(cfgPath, 'utf8');
+      const appsBlock = extractVdfBlock(content, 0, 'apps');
+      if (!appsBlock) continue;
+      const block = appsBlock.block;
+      const appIdRegex = /"(\d+)"\s*\{/g;
+      let m;
+      while ((m = appIdRegex.exec(block))) {
+        const appid = m[1];
+        const sub = extractVdfBlock(block, m.index, appid);
+        if (!sub) continue;
+        const playMatch = sub.block.match(/"Playtime"\s*"(\d+)"/i);
+        if (playMatch) {
+          const minutes = parseInt(playMatch[1], 10) || 0;
+          playtimes.set(appid, Math.max(minutes, playtimes.get(appid) || 0));
+        }
+        appIdRegex.lastIndex = sub.endIndex;
+      }
+    } catch (e) {}
+  }
+  return playtimes;
+}
+
+ipcMain.handle('scan-steam-games', async () => {
+  const steamPath = getSteamInstallPath();
+  if (!steamPath) return [];
+  const libraries = getSteamLibraryFolders(steamPath);
+  let playtimes;
+  try { playtimes = getSteamPlaytimes(steamPath); } catch (e) { playtimes = new Map(); }
+  const results = [];
+  const seenAppIds = new Set();
+  for (const lib of libraries) {
+    const steamappsDir = path.join(lib, 'steamapps');
+    let files;
+    try { files = fs.readdirSync(steamappsDir); } catch (e) { continue; }
+    for (const file of files) {
+      if (!/^appmanifest_\d+\.acf$/i.test(file)) continue;
+      try {
+        const content = fs.readFileSync(path.join(steamappsDir, file), 'utf8');
+        const appidMatch = content.match(/"appid"\s+"(\d+)"/i);
+        const nameMatch = content.match(/"name"\s+"([^"]+)"/i);
+        if (!appidMatch || !nameMatch) continue;
+        const appid = appidMatch[1];
+        const name = nameMatch[1];
+        if (seenAppIds.has(appid)) continue;
+        if (STEAM_NAME_DENYLIST.some(p => p.test(name))) continue;
+        seenAppIds.add(appid);
+        const minutes = playtimes.get(appid) || 0;
+        results.push({
+          name,
+          path: `steam://rungameid/${appid}`,
+          header: `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`,
+          playtimeSeconds: minutes * 60
+        });
+      } catch (e) {}
+    }
+  }
+  return results;
+});
+
+ipcMain.handle('scan-exes', async (event, folderPath) => {
+  let topEntries;
+  try {
+    topEntries = fs.readdirSync(folderPath, { withFileTypes: true }).filter(e => e.isDirectory());
+  } catch(e){
+    return [];
+  }
+  const results = [];
+  for (const dirEnt of topEntries){
+    const topDir = path.join(folderPath, dirEnt.name);
+    const exePath = findGameExeCandidates(topDir, dirEnt.name);
+    if (exePath){
+      results.push({ name: dirEnt.name, path: exePath });
+    }
+  }
+  return results;
+});
+
+ipcMain.handle('launch-game', async (event, exePath) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    // Steam (and other custom-protocol) games aren't a real .exe on disk —
+    // they're launched by handing the OS a URI like steam://rungameid/730,
+    // which the Steam client itself intercepts and boots. We have no handle
+    // on the resulting process, so playtime can't be auto-tracked for these.
+    if (/^[a-z0-9.+-]+:\/\//i.test(exePath) && !/^file:\/\//i.test(exePath)) {
+      await shell.openExternal(exePath);
+      if (win && !win.isDestroyed()) win.minimize();
+      return { ok: true };
+    }
+    const child = spawn(exePath, [], {
+      detached: true,
+      stdio: 'ignore',
+      cwd: path.dirname(exePath)
+    });
+    const startTime = Date.now();
+    activeLaunches.add(exePath);
+    // Listen for exit BEFORE unref-ing so we still hear about it even though
+    // the child is detached and the parent won't wait on it.
+    child.on('exit', () => {
+      activeLaunches.delete(exePath);
+      const seconds = Math.round((Date.now() - startTime) / 1000);
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('game-session-ended', { exePath, seconds, startTime });
+        // Bring the launcher back once the game closes.
+        if (win.isMinimized()) win.restore();
+        win.focus();
+      }
+    });
+    child.unref();
+    if (win && !win.isDestroyed()) win.minimize();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message, reason: describeLaunchError(e, exePath) };
+  }
+});
+
+// Turns a raw spawn error into a short, specific reason a user can act on,
+// instead of just "could not launch game" every time.
+function describeLaunchError(e, exePath){
+  const code = e && e.code;
+  if (code === 'ENOENT') return 'FILE NOT FOUND';
+  if (code === 'EACCES' || code === 'EPERM') return 'PERMISSION DENIED — TRY RUNNING AS ADMIN';
+  if (code === 'ENOTDIR') return 'INVALID PATH';
+  if (code === 'UNKNOWN' && /steam/i.test(exePath || '')) return 'STEAM MAY NOT BE RUNNING';
+  return 'LAUNCH FAILED';
+}
+
+ipcMain.handle('fetch-image-data', async (event, url) => {
+  // Downloads a remote image (e.g. a Steam CDN banner) and returns it as a
+  // base64 data URL. Used before cropping, since drawing a cross-origin
+  // <img> onto a <canvas> in the renderer would taint the canvas and block
+  // toDataURL(). Fetching it here in the main process sidesteps CORS.
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    return `data:${contentType};base64,${buf.toString('base64')}`;
+  } catch (e) {
+    return null;
+  }
+});
+
+ipcMain.handle('pick-image', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'ico', 'gif', 'webp'] }]
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  try {
+    const filePath = result.filePaths[0];
+    const ext = path.extname(filePath).slice(1).toLowerCase();
+    const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', ico: 'image/x-icon', gif: 'image/gif', webp: 'image/webp' };
+    const mime = mimeMap[ext] || 'application/octet-stream';
+    const data = fs.readFileSync(filePath).toString('base64');
+    return `data:${mime};base64,${data}`;
+  } catch (e) {
+    return null;
+  }
+});
+
+function normalizeStoreName(s){
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// storesearch's first result isn't always the right game (sequels, demos,
+// and soundtrack/DLC entries often outrank the base game for a short or
+// generic title), so score every result against the game's name instead of
+// blindly trusting items[0].
+function pickBestStoreMatch(items, gameName){
+  if (!items || items.length === 0) return null;
+  const target = normalizeStoreName(gameName);
+  let best = null;
+  let bestScore = -Infinity;
+  for (const item of items){
+    const name = normalizeStoreName(item.name);
+    let score;
+    if (name === target) score = 200;
+    else if (name.startsWith(target) || target.startsWith(name)) score = 100;
+    else if (name.includes(target) || target.includes(name)) score = 50;
+    else continue;
+    score -= Math.abs(name.length - target.length);
+    if (score > bestScore){ bestScore = score; best = item; }
+  }
+  // Fall back to the top result if nothing scored — better than nothing.
+  return best || items[0];
+}
+
+ipcMain.handle('fetch-game-banner', async (event, gameName) => {
+  try {
+    const query = encodeURIComponent(gameName);
+    const res = await fetch(`https://store.steampowered.com/api/storesearch/?term=${query}&cc=us&l=english`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const first = pickBestStoreMatch(data.items, gameName);
+    if (!first || !first.id) return null;
+
+    // Prefer the much higher-resolution "library hero" art so the banner
+    // isn't stretched/blurry. Fall back to the smaller header image if
+    // the hero art doesn't exist for this app.
+    const heroUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${first.id}/library_hero.jpg`;
+    try {
+      const heroCheck = await fetch(heroUrl, { method: 'HEAD' });
+      if (heroCheck.ok) return heroUrl;
+    } catch (e) {}
+
+    return `https://cdn.cloudflare.steamstatic.com/steam/apps/${first.id}/header.jpg`;
+  } catch (e) {
+    return null;
+  }
+});
+
+ipcMain.handle('fetch-game-header', async (event, gameName) => {
+  try {
+    const query = encodeURIComponent(gameName);
+    const res = await fetch(`https://store.steampowered.com/api/storesearch/?term=${query}&cc=us&l=english`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const first = pickBestStoreMatch(data.items, gameName);
+    if (!first || !first.id) return null;
+
+    // The classic small landscape store header (460x215) — used for the
+    // compact-mode thumbnails, distinct from the big cinematic banner.
+    // header.jpg exists for essentially every real appid, so skip the extra
+    // HEAD round trip that used to double the latency of every lookup; the
+    // renderer's <img> just won't render if it's ever actually missing.
+    return `https://cdn.cloudflare.steamstatic.com/steam/apps/${first.id}/header.jpg`;
+  } catch (e) {
+    return null;
+  }
+});
+
+ipcMain.handle('open-folder', async (event, folderPath) => {
+  shell.openPath(folderPath);
+  return true;
+});
+
+ipcMain.handle('check-paths', async (event, exePaths) => {
+  // Only checks real filesystem paths — steam:// (and other protocol) links
+  // aren't files, so they're never reported as missing.
+  const missing = [];
+  for (const p of exePaths || []) {
+    if (typeof p !== 'string' || !p) continue;
+    if (/^[a-z0-9.+-]+:\/\//i.test(p) && !/^file:\/\//i.test(p)) continue;
+    try {
+      if (!fs.existsSync(p)) missing.push(p);
+    } catch (e) {
+      missing.push(p);
+    }
+  }
+  return missing;
+});

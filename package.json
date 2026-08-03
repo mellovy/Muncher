@@ -1,0 +1,35 @@
+{
+  "name": "muncher",
+  "version": "1.0.0",
+  "description": "MUNCHER - custom game launcher",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.mello.muncher",
+    "productName": "Muncher",
+    "asar": true,
+    "compression": "maximum",
+    "files": [
+      "main.js",
+      "preload.js",
+      "launcher.html",
+      "style.css",
+      "muncher.ico"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "muncher.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

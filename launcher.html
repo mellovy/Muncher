@@ -1,0 +1,2290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Muncher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <aside class="sidebar">
+    <h1>M<span>UNCHER</span></h1>
+    <ul class="folder-list" id="folderList"></ul>
+    <button class="new-folder-btn" id="newFolderBtn">+ New folder</button>
+  </aside>
+
+  <button class="settings-fab" id="settingsBtn" title="Settings" aria-label="Settings">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </button>
+
+  <main class="main">
+    <header>
+      <div>
+        <h2 id="folderTitle">ALL GAMES</h2>
+        <p id="countLabel">0 games</p>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="Search your library...">
+      <select class="sort-select" id="sortSelect">
+        <option value="name-asc">Sort: Name (A–Z)</option>
+        <option value="name-desc">Sort: Name (Z–A)</option>
+        <option value="recent">Sort: Recently added</option>
+        <option value="oldest">Sort: Oldest added</option>
+        <option value="last-played">Sort: Recently played</option>
+        <option value="most-played">Sort: Most played</option>
+        <option value="custom">Sort: Custom order</option>
+      </select>
+      <button class="refresh-btn" id="refreshLibraryBtn" title="Scan for new games (local + Steam)" aria-label="Refresh library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <button class="refresh-btn" id="selectModeBtn" title="Select multiple games" aria-label="Select multiple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12l3 3 5-6"/></svg>
+      </button>
+    </div>
+
+    <div class="teeth"></div>
+
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="emptyState" style="display:none;"></div>
+
+    <div class="pagination" id="pagination" style="display:none;">
+      <div class="per-page">
+        <span>Show</span>
+        <select id="perPageSelect">
+          <option value="12">12</option>
+          <option value="24">24</option>
+          <option value="48">48</option>
+          <option value="96">96</option>
+          <option value="all">All</option>
+        </select>
+        <span>per page</span>
+      </div>
+      <div class="pages">
+        <button class="page-nav-btn" id="prevPageBtn" title="Previous page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span id="pageIndicator">Page 1 of 1</span>
+        <button class="page-nav-btn" id="nextPageBtn" title="Next page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-page" id="statsPage" style="display:none;">
+      <div class="stats-note">Games whose folder or .exe can no longer be found are flagged with a ⚠ badge on their card.</div>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="stats-columns">
+        <div class="stats-panel stats-panel-full">
+          <h3>Top played</h3>
+          <ul class="stats-list" id="statsTopList"></ul>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<button class="fab" id="addBtn" title="Add game" aria-label="Add game">+</button>
+
+<div class="toast" id="toast"><span class="toast-msg" id="toastMsg"></span><button class="toast-action" id="toastAction" style="display:none;"></button></div>
+
+<div class="bulk-bar" id="bulkBar">
+  <span id="bulkCount">0 selected</span>
+  <span class="bulk-hint">Drag selected onto a folder to move</span>
+  <button class="icon-btn" id="bulkFavoriteBtn" title="Favorite selected" aria-label="Favorite selected">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+  </button>
+  <button class="icon-btn danger" id="bulkDeleteBtn" title="Delete selected" aria-label="Delete selected">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+  </button>
+  <button class="btn ghost" id="bulkDoneBtn">Done</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">ADD GAME</h2>
+    <div class="field">
+      <label>Artwork</label>
+      <div class="artwork-split">
+        <div class="artwork-col">
+          <div class="artwork-box" id="headerBox">
+            <span id="headerPreviewText">Auto-fetched</span>
+            <div class="artwork-hover-actions">
+              <button class="artwork-action-btn" id="cropHeaderBtn" type="button" title="Resize / crop">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+              </button>
+              <button class="artwork-action-btn" id="editHeaderBtn" type="button" title="Upload custom header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              </button>
+              <button class="artwork-action-btn" id="resetHeaderBtn" type="button" title="Reset to auto-fetched" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="artwork-caption">Header<span class="artwork-hint">460×215</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="fName" placeholder="e.g. TEKKEN 8">
+    </div>
+    <div class="field">
+      <label>Path to .exe</label>
+      <div class="browse-row">
+        <input type="text" id="fPath" placeholder="C:\Users\you\Documents\Games\...\game.exe">
+        <button class="browse-btn" id="browseExeBtn" type="button">Browse</button>
+      </div>
+      <div class="note">Got a Steam game? Paste <code>steam://rungameid/APPID</code> instead of an .exe path.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cancelBtn">Cancel</button>
+      <button class="btn" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="folderOverlay">
+  <div class="modal">
+    <h2 id="folderModalTitle">NEW FOLDER</h2>
+    <div class="field">
+      <label>Folder name</label>
+      <input type="text" id="folderName" placeholder="e.g. Fighting Games">
+    </div>
+    <div class="field">
+      <label>Folder color</label>
+      <div class="accent-palette" id="folderColorPalette"></div>
+    </div>
+    <div class="field">
+      <div class="pin-checkbox-row">
+        <input type="checkbox" id="folderPinToggle">
+        <label for="folderPinToggle">Protect with PIN</label>
+      </div>
+      <input type="text" inputmode="numeric" id="folderPinInput" placeholder="4+ digit PIN" style="display:none;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="folderCancelBtn">Cancel</button>
+      <button class="btn" id="folderSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pinOverlay">
+  <div class="modal">
+    <h2>ENTER PIN</h2>
+    <div class="field">
+      <label id="pinPromptLabel">This folder is locked</label>
+      <input type="password" inputmode="numeric" class="pin-entry-input" id="pinPromptInput" placeholder="••••" maxlength="12">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="pinCancelBtn">Cancel</button>
+      <button class="btn" id="pinUnlockBtn">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="tutorialOverlay">
+  <div class="modal tutorial-modal">
+    <button class="tutorial-close-btn" id="tutorialSkipBtn" title="Skip tutorial" aria-label="Skip tutorial">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="tutorial-step-count" id="tutorialStepCount">STEP 1 OF 6</div>
+    <div class="tutorial-visual" id="tutorialVisual"></div>
+    <h2 id="tutorialTitle">WELCOME</h2>
+    <p class="tutorial-body" id="tutorialBody"></p>
+    <div class="tutorial-dots" id="tutorialDots"></div>
+    <div class="modal-actions tutorial-actions">
+      <button class="btn ghost" id="tutorialPrevBtn">Back</button>
+      <button class="btn" id="tutorialNextBtn">Next</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay">
+  <div class="modal settings-modal">
+    <h2>SETTINGS</h2>
+
+    <div class="settings-row">
+      <div class="field">
+        <label>Accent color</label>
+        <div class="accent-palette" id="accentPalette"></div>
+      </div>
+      <div class="field">
+        <label>Appearance</label>
+        <div class="theme-toggle">
+          <button class="theme-icon-btn" id="darkModeBtn" type="button" title="Dark mode" aria-label="Dark mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button class="theme-icon-btn" id="lightModeBtn" type="button" title="Light mode" aria-label="Light mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="field">
+        <label>Games folder</label>
+        <div class="path-display empty" id="gamesFolderDisplay">Not set</div>
+        <button class="stack-btn" id="setGamesFolderBtn">Set games folder</button>
+        <button class="stack-btn" id="scanGamesBtn">Scan for new games</button>
+        <div class="note">Default Browse location, scanned for new games.</div>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="field">
+        <label>Steam library</label>
+        <button class="stack-btn" id="scanSteamBtn">Import Steam games</button>
+        <div class="note">Adds installed Steam games, with playtime.</div>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="field">
+        <label>Shortcuts</label>
+        <div class="note">Ctrl+F to search. Ctrl+Shift+M summons Muncher from anywhere, even minimized.</div>
+        <button class="stack-btn" id="replayTutorialBtn">Show tutorial again</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="settingsCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="cropOverlay">
+  <div class="crop-modal">
+    <h2>RESIZE / CROP</h2>
+    <div class="crop-viewport" id="cropViewport">
+      <img id="cropImage" src="" alt="">
+    </div>
+    <div class="crop-zoom-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="M21 21l-4.35-4.35"/><path d="M7 10h6"/></svg>
+      <input type="range" id="cropZoomSlider" min="0" max="100" value="0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="M21 21l-4.35-4.35"/><path d="M7 8v4"/><path d="M8 10h4"/></svg>
+    </div>
+    <div class="crop-hint">Drag to reposition, use the slider to zoom</div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cropCancelBtn">Cancel</button>
+      <button class="btn" id="cropApplyBtn">Apply</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="confirmOverlay">
+  <div class="modal confirm-modal">
+    <h2 id="confirmTitle">ARE YOU SURE?</h2>
+    <p id="confirmMessage" class="confirm-message"></p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="confirmCancelBtn">Cancel</button>
+      <button class="btn danger-btn" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="detailOverlay">
+  <div class="detail-modal">
+    <div class="detail-banner no-image" id="detailBanner">
+      <button class="detail-close" id="detailCloseBtn" title="Close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="detail-header">
+      <h2 id="detailTitle">Game name</h2>
+    </div>
+    <div class="detail-body">
+      <div class="detail-folder-tag" id="detailFolderTag" style="visibility:hidden">.</div>
+      <div class="detail-playtime" id="detailPlaytime">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <span id="detailPlaytimeText">Not played yet</span>
+        <span id="detailLastPlayedText" class="detail-last-played"></span>
+      </div>
+      <div class="broken-warning" id="detailBrokenWarning" style="display:none;">⚠ Game files not found — the folder may have moved or been deleted</div>
+      <div class="detail-actions">
+        <button class="launch-btn-lg" id="detailLaunchBtn" title="Launch">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Launch
+        </button>
+        <button class="icon-btn" id="detailFavoriteBtn" title="Favorite">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </button>
+        <button class="icon-btn" id="detailHistoryBtn" title="Session history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M3 12a9 9 0 0 1 3-6.7"/></svg>
+        </button>
+        <button class="icon-btn" id="detailEditBtn" title="Edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button class="icon-btn" id="detailDeleteBtn" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>
+      <div class="detail-sessions" id="detailSessions" style="display:none;">
+        <div class="detail-sessions-title">Recent sessions</div>
+        <ul id="detailSessionsList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let games = [];
+let folders = [];
+let gamesFolder = '';
+let activeFolder = 'all';
+let editingId = null;
+let theme = 'dark';
+let modalColor = null;
+let modalHeader = null;
+let modalHeaderCustom = false;
+let selectedCardIndex = -1;
+let selectMode = false;
+let selectedIds = new Set();
+let modalFolderColor = '';
+const FOLDER_COLOR_PALETTE = ['', '#e21414','#e2660f','#d6a017','#1f9e52','#12968c','#1f6fe2','#7a3fe2','#e2317a'];
+
+let sortBy = 'name-asc';
+let perPage = 24;
+let currentPage = 1;
+const DEFAULT_ACCENT = '#e21414';
+let accentColor = DEFAULT_ACCENT;
+const ACCENT_PALETTE = ['#e21414','#e2660f','#d6a017','#1f9e52','#12968c','#1f6fe2','#7a3fe2','#e2317a'];
+
+let editingFolderId = null;
+let unlockedFolders = new Set(); // session-only: which PIN-locked folders have been unlocked
+let pendingUnlockFolderId = null;
+
+const grid = document.getElementById('grid');
+const emptyState = document.getElementById('emptyState');
+const countLabel = document.getElementById('countLabel');
+const folderTitle = document.getElementById('folderTitle');
+const folderList = document.getElementById('folderList');
+const overlay = document.getElementById('overlay');
+const folderOverlay = document.getElementById('folderOverlay');
+const detailOverlay = document.getElementById('detailOverlay');
+const toast = document.getElementById('toast');
+const toastMsg = document.getElementById('toastMsg');
+const toastActionBtn = document.getElementById('toastAction');
+let toastHideTimer = null;
+
+// opts.actionLabel + opts.onAction show a clickable button in the toast
+// (e.g. "Undo") that stays live for the toast's full duration.
+function showToast(msg, opts){
+  opts = opts || {};
+  clearTimeout(toastHideTimer);
+  toastMsg.textContent = msg;
+  if(opts.actionLabel && opts.onAction){
+    toastActionBtn.textContent = opts.actionLabel;
+    toastActionBtn.style.display = '';
+    toastActionBtn.onclick = () => {
+      clearTimeout(toastHideTimer);
+      toast.classList.remove('show');
+      opts.onAction();
+    };
+  }else{
+    toastActionBtn.style.display = 'none';
+    toastActionBtn.onclick = null;
+  }
+  toast.classList.add('show');
+  toastHideTimer = setTimeout(() => toast.classList.remove('show'), opts.duration || (opts.actionLabel ? 4500 : 2200));
+}
+
+const confirmOverlay = document.getElementById('confirmOverlay');
+let confirmResolve = null;
+function showConfirm(message, opts){
+  opts = opts || {};
+  document.getElementById('confirmTitle').textContent = opts.title || 'ARE YOU SURE?';
+  document.getElementById('confirmMessage').textContent = message;
+  const okBtn = document.getElementById('confirmOkBtn');
+  okBtn.textContent = opts.confirmLabel || 'Confirm';
+  okBtn.classList.toggle('danger-btn', opts.danger !== false);
+  confirmOverlay.classList.add('show');
+  return new Promise((resolve) => { confirmResolve = resolve; });
+}
+document.getElementById('confirmOkBtn').addEventListener('click', () => {
+  confirmOverlay.classList.remove('show');
+  if(confirmResolve) confirmResolve(true);
+  confirmResolve = null;
+});
+document.getElementById('confirmCancelBtn').addEventListener('click', () => {
+  confirmOverlay.classList.remove('show');
+  if(confirmResolve) confirmResolve(false);
+  confirmResolve = null;
+});
+addBackdropClose(confirmOverlay, () => {
+  if(confirmResolve) confirmResolve(false);
+  confirmResolve = null;
+});
+
+function addBackdropClose(overlayEl, onClose){
+  let downOnBackdrop = false;
+  overlayEl.addEventListener('mousedown', (e) => { downOnBackdrop = (e.target === overlayEl); });
+  overlayEl.addEventListener('click', (e) => {
+    if(downOnBackdrop && e.target === overlayEl){
+      overlayEl.classList.remove('show');
+      if(onClose) onClose();
+    }
+    downOnBackdrop = false;
+  });
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem('launcher-data');
+    const data = raw ? JSON.parse(raw) : null;
+    games = data?.games || [];
+    folders = data?.folders || [];
+    gamesFolder = data?.gamesFolder || '';
+    theme = data?.theme || 'dark';
+    sortBy = data?.sortBy || 'name-asc';
+    perPage = data?.perPage || 24;
+    accentColor = data?.accentColor || DEFAULT_ACCENT;
+  }catch(e){
+    games = [];
+    folders = [];
+    gamesFolder = '';
+    theme = 'dark';
+    sortBy = 'name-asc';
+    perPage = 24;
+    accentColor = DEFAULT_ACCENT;
+  }
+  applyTheme();
+  grid.classList.add('compact');
+  applyAccent(accentColor);
+  renderAccentPalette();
+  const sortSelect = document.getElementById('sortSelect');
+  if(sortSelect) sortSelect.value = sortBy;
+  const perPageSelect = document.getElementById('perPageSelect');
+  if(perPageSelect) perPageSelect.value = String(perPage);
+  renderFolders();
+  renderGamesFolder();
+  render();
+  detectBrokenPaths();
+}
+
+function saveData(){
+  try{
+    localStorage.setItem('launcher-data', JSON.stringify({ games, folders, gamesFolder, theme, sortBy, perPage, accentColor }));
+  }catch(e){
+    showToast('COULD NOT SAVE');
+  }
+}
+
+function hexToRgb(hex){
+  const m = hex.replace('#','').match(/.{1,2}/g);
+  return m ? m.map(x => parseInt(x,16)) : [226,20,20];
+}
+function darken(hex, factor){
+  const [r,g,b] = hexToRgb(hex);
+  const d = v => Math.max(0, Math.round(v * factor)).toString(16).padStart(2,'0');
+  return `#${d(r)}${d(g)}${d(b)}`;
+}
+function defaultGameColor(){
+  // Fallback tile color for games with no custom color and no fetched
+  // header art yet — kept in sync with the current accent color.
+  return darken(accentColor, 0.45);
+}
+function applyAccent(color){
+  accentColor = color;
+  const dark = darken(color, 0.45);
+  // set on body (inline style) so it overrides the theme classes' own --red/--red-dark
+  document.body.style.setProperty('--red', color);
+  document.body.style.setProperty('--red-dark', dark);
+}
+function renderAccentPalette(){
+  const wrap = document.getElementById('accentPalette');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  ACCENT_PALETTE.forEach(color => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'accent-swatch' + (accentColor.toLowerCase() === color.toLowerCase() ? ' active' : '');
+    btn.style.background = color;
+    btn.style.color = color;
+    btn.title = color;
+    btn.addEventListener('click', () => {
+      applyAccent(color);
+      saveData();
+      renderAccentPalette();
+      render();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function applyTheme(){
+  document.body.classList.toggle('theme-light', theme === 'light');
+  const darkBtn = document.getElementById('darkModeBtn');
+  const lightBtn = document.getElementById('lightModeBtn');
+  if(darkBtn && lightBtn){
+    darkBtn.classList.toggle('active', theme !== 'light');
+    lightBtn.classList.toggle('active', theme === 'light');
+  }
+}
+
+function renderGamesFolder(){
+  const display = document.getElementById('gamesFolderDisplay');
+  if(gamesFolder){
+    display.textContent = gamesFolder;
+    display.classList.remove('empty');
+  }else{
+    display.textContent = 'Not set';
+    display.classList.add('empty');
+  }
+}
+
+function normalizeGameName(name){
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Flags games whose local .exe no longer exists (moved/renamed/deleted folder)
+// with a badge on the card, instead of just silently failing to launch.
+async function detectBrokenPaths(){
+  if(!window.electronAPI || !window.electronAPI.checkPaths) return;
+  const localPaths = games.filter(g => g.path && !/^[a-z0-9.+-]+:\/\//i.test(g.path)).map(g => g.path);
+  if(localPaths.length === 0) return;
+  let missing;
+  try { missing = await window.electronAPI.checkPaths(localPaths); } catch(e){ return; }
+  const missingSet = new Set(missing);
+  let changed = false;
+  games.forEach(g => {
+    const isMissing = missingSet.has(g.path);
+    if(!!g.pathMissing !== isMissing){ g.pathMissing = isMissing; changed = true; }
+  });
+  if(changed) render();
+}
+
+function initials(name){
+  const words = name.trim().split(/\s+/);
+  if(words.length === 1) return words[0].slice(0,2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+function escapeHtml(s){
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+// Auto-scrolls the sidebar while dragging a card near its top/bottom edge —
+// without this, a folder scrolled out of view could never be a drop target.
+const sidebarEl = document.querySelector('.sidebar');
+sidebarEl.addEventListener('dragover', (e) => {
+  const rect = sidebarEl.getBoundingClientRect();
+  const edge = 44;
+  const topGap = e.clientY - rect.top;
+  const bottomGap = rect.bottom - e.clientY;
+  if(topGap < edge){
+    sidebarEl.scrollTop -= (edge - topGap) * 0.5;
+  }else if(bottomGap < edge){
+    sidebarEl.scrollTop += (edge - bottomGap) * 0.5;
+  }
+});
+
+function addFolderDropTarget(el, folderId){
+  el.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    el.classList.add('drag-over');
+  });
+  el.addEventListener('dragleave', () => {
+    el.classList.remove('drag-over');
+  });
+  el.addEventListener('drop', (e) => {
+    e.preventDefault();
+    el.classList.remove('drag-over');
+    const ids = getDraggedIds(e);
+    const matched = games.filter(g => ids.includes(g.id));
+    if(matched.length === 0) return;
+    matched.forEach(g => g.folder = folderId);
+    saveData();
+    renderFolders();
+    render();
+    if(matched.length > 1){
+      showToast(folderId ? `MOVED ${matched.length} GAMES TO FOLDER` : `REMOVED ${matched.length} GAMES FROM FOLDER`);
+    }else{
+      showToast(folderId ? 'MOVED TO FOLDER' : 'REMOVED FROM FOLDER');
+    }
+  });
+}
+
+function renderFolders(){
+  folderList.innerHTML = '';
+  const allItem = document.createElement('li');
+  allItem.className = 'folder-item' + (activeFolder === 'all' ? ' active' : '');
+  allItem.innerHTML = `<span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Game Library</span><span class="right"><span class="count">${games.length}</span></span>`;
+  allItem.addEventListener('click', () => { activeFolder = 'all'; currentPage = 1; renderFolders(); render(); });
+  addFolderDropTarget(allItem, '');
+  folderList.appendChild(allItem);
+
+  const statsItem = document.createElement('li');
+  statsItem.className = 'folder-item stats-nav-item' + (activeFolder === 'stats' ? ' active' : '');
+  statsItem.innerHTML = `<span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12.5" y="8" width="3" height="10"/><rect x="18" y="5" width="3" height="13"/></svg>Library Stats</span>`;
+  statsItem.addEventListener('click', () => {
+    activeFolder = 'stats';
+    currentPage = 1;
+    renderFolders();
+    render();
+  });
+  folderList.appendChild(statsItem);
+
+  // Divider between the top-level nav (All/Stats) and the folders section.
+  // Favorites always lives in the folders section, pinned first, so the
+  // divider always shows even when the user has no custom folders yet.
+  const divider = document.createElement('li');
+  divider.className = 'folder-divider';
+  folderList.appendChild(divider);
+
+  const favCount = games.filter(g => g.favorite && isFolderVisible(g.folder)).length;
+  const favoritesItem = document.createElement('li');
+  favoritesItem.className = 'folder-item favorites-nav-item' + (activeFolder === 'favorites' ? ' active' : '');
+  favoritesItem.innerHTML = `<span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Favorites</span><span class="right"><span class="count">${favCount}</span></span>`;
+  favoritesItem.addEventListener('click', () => { activeFolder = 'favorites'; currentPage = 1; renderFolders(); render(); });
+  folderList.appendChild(favoritesItem);
+
+  folders.forEach(f => {
+    const count = games.filter(g => g.folder === f.id).length;
+    const isLocked = !!f.pin;
+    const isUnlocked = !isLocked || unlockedFolders.has(f.id);
+    const item = document.createElement('li');
+    item.className = 'folder-item' + (activeFolder === f.id ? ' active' : '');
+    const lockIcon = isLocked
+      ? `<svg class="lock-icon${isUnlocked ? ' is-open' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">${isUnlocked
+          ? '<rect x="4" y="11" width="16" height="9" rx="1"/><path d="M7 11V8a5 5 0 0 1 9.5-2.2"/>'
+          : '<rect x="4" y="11" width="16" height="9" rx="1"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/>'}</svg>`
+      : '';
+    const colorDot = f.color ? `<span class="folder-color-dot" style="background:${f.color}"></span>` : '';
+    item.innerHTML = `
+      <span style="display:flex;align-items:center;gap:6px;min-width:0;">${colorDot}${lockIcon}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(f.name)}</span></span>
+      <span class="right">
+        <span class="count">${isLocked && !isUnlocked ? '' : count}</span>
+        ${isLocked ? `<button class="folder-lock-toggle" data-folder-id="${f.id}" title="${isUnlocked ? 'Re-lock folder' : 'Unlock folder'}" aria-label="Toggle lock">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${isUnlocked
+            ? '<rect x="4" y="11" width="16" height="9" rx="1"/><path d="M7 11V8a5 5 0 0 1 9.5-2.2"/>'
+            : '<rect x="4" y="11" width="16" height="9" rx="1"/><path d="M7 11V8a5 5 0 0 1 10 0v3"/>'}</svg>
+        </button>` : ''}
+        <button class="folder-edit" data-folder-id="${f.id}" title="Edit folder" aria-label="Edit folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button class="folder-delete" data-folder-id="${f.id}" title="Delete folder" aria-label="Delete folder">X</button>
+      </span>
+    `;
+    item.addEventListener('click', (e) => {
+      if(e.target.closest('.folder-delete') || e.target.closest('.folder-lock-toggle') || e.target.closest('.folder-edit')) return;
+      if(isLocked && !isUnlocked){
+        openPinPrompt(f.id);
+        return;
+      }
+      activeFolder = f.id; currentPage = 1; renderFolders(); render();
+    });
+    item.querySelector('.folder-edit').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditFolderModal(f);
+    });
+    item.querySelector('.folder-delete').addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteFolder(f.id);
+    });
+    const lockToggle = item.querySelector('.folder-lock-toggle');
+    if(lockToggle){
+      lockToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(isUnlocked){
+          unlockedFolders.delete(f.id);
+          if(activeFolder === f.id) activeFolder = 'all';
+          renderFolders(); render();
+          showToast('FOLDER RE-LOCKED');
+        }else{
+          openPinPrompt(f.id);
+        }
+      });
+    }
+    item.addEventListener('dblclick', (e) => {
+      if(e.target.closest('.folder-delete') || e.target.closest('.folder-lock-toggle') || e.target.closest('.folder-edit')) return;
+      openEditFolderModal(f);
+    });
+    addFolderDropTarget(item, f.id);
+    folderList.appendChild(item);
+  });
+
+}
+
+function openPinPrompt(folderId){
+  pendingUnlockFolderId = folderId;
+  const folder = folders.find(f => f.id === folderId);
+  document.getElementById('pinPromptLabel').textContent = folder ? `Unlock "${folder.name}"` : 'This folder is locked';
+  document.getElementById('pinPromptInput').value = '';
+  document.getElementById('pinOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('pinPromptInput').focus(), 30);
+}
+
+document.getElementById('pinCancelBtn').addEventListener('click', () => {
+  document.getElementById('pinOverlay').classList.remove('show');
+  pendingUnlockFolderId = null;
+});
+addBackdropClose(document.getElementById('pinOverlay'), () => { pendingUnlockFolderId = null; });
+document.getElementById('pinUnlockBtn').addEventListener('click', () => {
+  const folder = folders.find(f => f.id === pendingUnlockFolderId);
+  const entered = document.getElementById('pinPromptInput').value;
+  if(!folder) return;
+  if(entered === folder.pin){
+    unlockedFolders.add(folder.id);
+    activeFolder = folder.id;
+    currentPage = 1;
+    document.getElementById('pinOverlay').classList.remove('show');
+    pendingUnlockFolderId = null;
+    renderFolders();
+    render();
+    showToast('FOLDER UNLOCKED');
+  }else{
+    showToast('WRONG PIN');
+    document.getElementById('pinPromptInput').value = '';
+    document.getElementById('pinPromptInput').focus();
+  }
+});
+document.getElementById('pinPromptInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('pinUnlockBtn').click();
+});
+
+function openEditFolderModal(f){
+  editingFolderId = f.id;
+  document.getElementById('folderModalTitle').textContent = 'EDIT FOLDER';
+  document.getElementById('folderName').value = f.name;
+  document.getElementById('folderPinToggle').checked = !!f.pin;
+  document.getElementById('folderPinInput').style.display = f.pin ? 'block' : 'none';
+  document.getElementById('folderPinInput').value = f.pin || '';
+  modalFolderColor = f.color || '';
+  renderFolderColorPalette();
+  document.getElementById('folderOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('folderName').focus(), 30);
+}
+
+async function deleteFolder(folderId){
+  const folder = folders.find(f => f.id === folderId);
+  if(!folder) return;
+  const ok = await showConfirm(`Delete "${folder.name}"? Games inside it won't be deleted, just unfiled.`, { title: 'DELETE FOLDER?', confirmLabel: 'Delete' });
+  if(!ok) return;
+
+  folders = folders.filter(f => f.id !== folderId);
+  games.forEach(g => { if(g.folder === folderId) g.folder = ''; });
+  if(activeFolder === folderId) activeFolder = 'all';
+
+  saveData();
+  renderFolders();
+  render();
+  showToast('FOLDER DELETED');
+}
+
+function isFolderVisible(folderId){
+  if(!folderId) return true;
+  const f = folders.find(x => x.id === folderId);
+  if(!f || !f.pin) return true;
+  return unlockedFolders.has(f.id);
+}
+
+function sortGames(list){
+  const sorted = list.slice();
+  if(sortBy === 'custom'){
+    // Preserve the manually dragged order in `games` — no favorite float,
+    // since the whole point is the user's own arrangement.
+    const order = new Map(games.map((g, i) => [g.id, i]));
+    sorted.sort((a,b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return sorted;
+  }
+  switch(sortBy){
+    case 'name-desc':
+      sorted.sort((a,b) => b.name.localeCompare(a.name)); break;
+    case 'recent':
+      sorted.sort((a,b) => Number(b.id) - Number(a.id)); break;
+    case 'oldest':
+      sorted.sort((a,b) => Number(a.id) - Number(b.id)); break;
+    case 'last-played':
+      sorted.sort((a,b) => (b.lastPlayed || 0) - (a.lastPlayed || 0)); break;
+    case 'most-played':
+      sorted.sort((a,b) => (b.playtime || 0) - (a.playtime || 0)); break;
+    case 'name-asc':
+    default:
+      sorted.sort((a,b) => a.name.localeCompare(b.name));
+  }
+  // Favorites always float to the top, keeping the chosen sort within each group.
+  sorted.sort((a,b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+  return sorted;
+}
+
+function reorderGames(sourceId, targetId){
+  const fromIdx = games.findIndex(g => g.id === sourceId);
+  const toIdx = games.findIndex(g => g.id === targetId);
+  if(fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+  const [moved] = games.splice(fromIdx, 1);
+  const insertAt = games.findIndex(g => g.id === targetId);
+  games.splice(insertAt, 0, moved);
+  if(sortBy !== 'custom'){
+    sortBy = 'custom';
+    const sortSelect = document.getElementById('sortSelect');
+    if(sortSelect) sortSelect.value = 'custom';
+    showToast('SWITCHED TO CUSTOM ORDER');
+  }
+  saveData();
+  render();
+}
+
+function render(){
+  const toolbar = document.querySelector('.toolbar');
+  const teeth = document.querySelector('.teeth');
+  const statsPage = document.getElementById('statsPage');
+  const pagination = document.getElementById('pagination');
+  const fab = document.getElementById('addBtn');
+
+  if(activeFolder === 'stats'){
+    folderTitle.textContent = 'LIBRARY STATS';
+    countLabel.textContent = 'An overview of your library and play habits';
+    if(toolbar) toolbar.style.display = 'none';
+    if(teeth) teeth.style.display = 'none';
+    grid.style.display = 'none';
+    emptyState.style.display = 'none';
+    pagination.style.display = 'none';
+    if(fab) fab.style.display = 'none';
+    statsPage.style.display = 'block';
+    renderStats();
+    return;
+  }
+  if(toolbar) toolbar.style.display = '';
+  if(teeth) teeth.style.display = '';
+  grid.style.display = '';
+  if(fab) fab.style.display = '';
+  statsPage.style.display = 'none';
+
+  const query = document.getElementById('search').value.toLowerCase();
+  let list = games.filter(g => g.name.toLowerCase().includes(query));
+  if(activeFolder === 'favorites'){
+    list = list.filter(g => g.favorite);
+  }else if(activeFolder !== 'all'){
+    list = list.filter(g => g.folder === activeFolder);
+  }
+  // Never surface games from a PIN-locked folder that hasn't been unlocked this session
+  list = list.filter(g => isFolderVisible(g.folder));
+  list = sortGames(list);
+
+  const activeFolderObj = folders.find(f => f.id === activeFolder);
+  folderTitle.textContent = activeFolder === 'all' ? 'GAME LIBRARY' : activeFolder === 'favorites' ? 'FAVORITES' : activeFolderObj?.name.toUpperCase() || 'GAME LIBRARY';
+  const totalInView = activeFolder === 'all'
+    ? games.filter(g => isFolderVisible(g.folder)).length
+    : activeFolder === 'favorites'
+    ? games.filter(g => g.favorite && isFolderVisible(g.folder)).length
+    : games.filter(g => g.folder === activeFolder && isFolderVisible(g.folder)).length;
+  countLabel.textContent = totalInView + ' game' + (totalInView === 1 ? '' : 's');
+
+  grid.innerHTML = '';
+
+  if(list.length === 0){
+    emptyState.style.display = 'block';
+    pagination.style.display = 'none';
+    if(games.length === 0){
+      emptyState.innerHTML = 'No games yet. <span>Hit the + button</span> to get started.';
+    }else{
+      emptyState.innerHTML = 'Nothing here. Try a different folder or search.';
+    }
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  const fullList = list;
+  const totalPages = perPage === 'all' ? 1 : Math.max(1, Math.ceil(fullList.length / perPage));
+  if(currentPage > totalPages) currentPage = totalPages;
+  if(currentPage < 1) currentPage = 1;
+  list = perPage === 'all' ? fullList : fullList.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+  pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+  document.getElementById('pageIndicator').textContent = `Page ${currentPage} of ${totalPages}`;
+  document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+  document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+
+  list.forEach(g => {
+    grid.appendChild(buildCompactCard(g));
+  });
+
+  fetchMissingArtwork(list);
+}
+
+function buildThumbInner(g){
+  // Header art and banner art are fetched independently (different endpoints,
+  // different matching), so a game can end up with a working banner but a
+  // header URL that 404s — that used to just show a broken image forever.
+  // onerror now falls back to the banner art if we have one, then to the
+  // initials placeholder, and clears whichever URL actually failed so a
+  // future scan can try fetching it again.
+  const imgSrc = g.header || g.banner;
+  const img = imgSrc
+    ? `<img src="${imgSrc}" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;" onerror="handleThumbError(this,'${g.id}')">`
+    : `<span>${initials(g.name)}</span>`;
+  const brokenBadge = g.pathMissing ? `<span class="broken-badge"${selectMode ? ' style="top:32px"' : ''} title="Game files not found — the folder may have moved or been deleted">⚠</span>` : '';
+  const selectCheckbox = selectMode ? `<label class="select-checkbox" onclick="event.stopPropagation()"><input type="checkbox" data-action="select" data-id="${g.id}" ${selectedIds.has(g.id) ? 'checked' : ''}></label>` : '';
+  return `
+      ${img}
+      ${brokenBadge}
+      ${selectCheckbox}
+      <button class="favorite-star" data-action="favorite" data-id="${g.id}" title="Favorite" aria-label="Toggle favorite">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      </button>
+      <button class="compact-play-btn" data-action="launch" data-id="${g.id}" title="Launch">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+  `;
+}
+
+function handleThumbError(imgEl, id){
+  const game = games.find(g => g.id === id);
+  if(game){
+    if(game.banner && imgEl.src !== game.banner){
+      // The header URL didn't load — try the (separately-fetched) banner
+      // art before giving up entirely.
+      imgEl.src = game.banner;
+      return;
+    }
+    // Whichever URL we just tried was actually bad — drop it so a future
+    // background scan re-fetches instead of retrying the same dead link.
+    if(imgEl.src === game.header) game.header = null;
+    if(imgEl.src === game.banner) game.banner = null;
+    saveData();
+  }
+  const tile = imgEl.closest('.compact-thumb');
+  imgEl.remove();
+  if(tile && !tile.querySelector('.thumb-initials')){
+    const span = document.createElement('span');
+    span.className = 'thumb-initials';
+    span.textContent = game ? initials(game.name) : '';
+    tile.insertBefore(span, tile.firstChild);
+  }
+}
+
+function buildCompactCard(g){
+  const card = document.createElement('div');
+  card.className = 'compact-card' + (g.favorite ? ' is-favorite' : '') + (selectMode && selectedIds.has(g.id) ? ' selected' : '');
+  card.draggable = true;
+  card.dataset.id = g.id;
+  const color = defaultGameColor();
+  card.style.setProperty('--card-color', color);
+  card.innerHTML = `
+    <div class="compact-thumb" data-header-tile="${g.id}">
+      ${buildThumbInner(g)}
+    </div>
+    <div class="compact-info">
+      <span class="compact-title">${escapeHtml(g.name)}</span>
+      <button class="compact-menu-btn" data-action="menu" data-id="${g.id}" title="More" aria-label="More options">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+      </button>
+    </div>
+    <div class="compact-menu" data-menu="${g.id}">
+      <button data-action="edit" data-id="${g.id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Edit
+      </button>
+      <button data-action="copy-path" data-id="${g.id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy path
+      </button>
+      <button class="danger" data-action="delete" data-id="${g.id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Delete
+      </button>
+    </div>
+  `;
+  return card;
+}
+
+function closeAllCompactMenus(){
+  document.querySelectorAll('.compact-menu.show').forEach(m => {
+    m.classList.remove('show', 'context-open');
+    m.style.position = '';
+    m.style.left = '';
+    m.style.top = '';
+    m.style.right = '';
+    // Context-menu opens reparent the menu to <body> (see contextmenu handler
+    // below) so it needs to be moved back into its card before the next render.
+    if(m._homeCard){
+      m._homeCard.appendChild(m);
+      m._homeCard = null;
+    }
+  });
+}
+
+function fetchMissingArtwork(list){
+  if(!window.electronAPI) return;
+  list.forEach(async (g) => {
+    try{
+      if(!g.header && window.electronAPI.fetchGameHeader){
+        const url = await window.electronAPI.fetchGameHeader(g.name);
+        if(url){
+          g.header = url;
+          saveData();
+          const tile = grid.querySelector(`[data-header-tile="${g.id}"]`);
+          if(tile) tile.innerHTML = buildThumbInner(g);
+        }
+      }
+    }catch(e){}
+  });
+}
+
+grid.addEventListener('dragstart', (e) => {
+  const card = e.target.closest('.compact-card');
+  if(!card) return;
+  card.classList.add('dragging');
+  const id = card.dataset.id;
+  // In select mode, dragging one of the selected cards carries the whole
+  // selection along (so bulk moves to a folder work in one drag).
+  if(selectMode && selectedIds.has(id) && selectedIds.size > 1){
+    e.dataTransfer.setData('text/plain', JSON.stringify([...selectedIds]));
+  }else{
+    e.dataTransfer.setData('text/plain', id);
+  }
+  e.dataTransfer.effectAllowed = 'move';
+  // Without this, Chromium sometimes grabs the raw <img> inside the card as
+  // the native drag preview, which reads as a quick flash on ordinary clicks.
+  e.dataTransfer.setDragImage(card, 20, 20);
+});
+
+// Parses the drag payload set above, always returning an array of ids.
+function getDraggedIds(e){
+  const raw = e.dataTransfer.getData('text/plain');
+  if(!raw) return [];
+  try{
+    const parsed = JSON.parse(raw);
+    if(Array.isArray(parsed)) return parsed;
+  }catch(err){}
+  return [raw];
+}
+grid.addEventListener('dragend', (e) => {
+  const card = e.target.closest('.compact-card');
+  if(card) card.classList.remove('dragging');
+});
+
+// Drag-to-reorder within the grid: dropping a card onto another card
+// splices it into that position in the underlying `games` array.
+grid.addEventListener('dragover', (e) => {
+  const card = e.target.closest('.compact-card');
+  if(!card || card.classList.contains('dragging')) return;
+  e.preventDefault();
+  card.classList.add('drag-over-card');
+});
+grid.addEventListener('dragleave', (e) => {
+  const card = e.target.closest('.compact-card');
+  if(card) card.classList.remove('drag-over-card');
+});
+grid.addEventListener('drop', (e) => {
+  const card = e.target.closest('.compact-card');
+  if(!card) return;
+  card.classList.remove('drag-over-card');
+  const ids = getDraggedIds(e);
+  if(ids.length !== 1) return; // reordering onto a specific spot only makes sense for a single dragged card
+  const sourceId = ids[0];
+  const targetId = card.dataset.id;
+  if(!sourceId || sourceId === targetId) return;
+  e.preventDefault();
+  reorderGames(sourceId, targetId);
+});
+
+// Right-click a card for the same menu the ⋮ button opens, anchored to the cursor.
+grid.addEventListener('contextmenu', (e) => {
+  const card = e.target.closest('.compact-card');
+  if(!card) return;
+  e.preventDefault();
+  const menu = grid.querySelector(`[data-menu="${card.dataset.id}"]`);
+  const wasOpen = menu && menu.classList.contains('show');
+  closeAllCompactMenus();
+  if(menu && !wasOpen){
+    // Cards get a hover transform (translateY), and a CSS transform on an
+    // ancestor turns position:fixed into something anchored to that ancestor
+    // instead of the viewport — which is why the menu used to pop up in the
+    // wrong spot instead of at the cursor. Moving it to <body> first sidesteps
+    // that entirely; closeAllCompactMenus() puts it back afterward.
+    menu._homeCard = card;
+    document.body.appendChild(menu);
+    menu.style.position = 'fixed';
+    menu.classList.add('show', 'context-open');
+    const rect = menu.getBoundingClientRect();
+    let left = e.clientX;
+    let top = e.clientY;
+    if(left + rect.width > window.innerWidth - 8) left = window.innerWidth - rect.width - 8;
+    if(top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
+    menu.style.left = Math.max(8, left) + 'px';
+    menu.style.top = Math.max(8, top) + 'px';
+    menu.style.right = 'auto';
+  }
+});
+
+async function launchGame(game){
+  if(!game.path){
+    showToast('NO PATH SET FOR THIS GAME');
+    return;
+  }
+  if(game.pathMissing){
+    showToast('GAME FILES NOT FOUND — CHECK ITS PATH');
+    return;
+  }
+  if(window.electronAPI){
+    const result = await window.electronAPI.launchGame(game.path);
+    if(result.ok){
+      showToast('LAUNCHING ' + game.name.toUpperCase());
+    }else{
+      showToast(result.reason || 'COULD NOT LAUNCH GAME');
+    }
+  }else{
+    try{
+      const folderPath = game.path.replace(/\\/g,'/').split('/').slice(0,-1).join('/');
+      window.open('file:///' + encodeURI(folderPath), '_blank');
+      showToast('OPENING FOLDER — LAUNCH FROM YOUR SHORTCUT');
+    }catch(err){
+      navigator.clipboard.writeText(game.path);
+      showToast('PATH COPIED TO CLIPBOARD');
+    }
+  }
+}
+
+function openEditModal(game){
+  editingId = game.id;
+  document.getElementById('modalTitle').textContent = 'EDIT GAME';
+  document.getElementById('fName').value = game.name;
+  document.getElementById('fPath').value = game.path || '';
+  modalColor = defaultGameColor();
+  modalHeader = game.header || null;
+  modalHeaderCustom = !!game.headerCustom;
+  updateHeaderPreview();
+  overlay.classList.add('show');
+  setTimeout(() => document.getElementById('fName').focus(), 30);
+  if(!modalHeader) fetchAndSetHeader(game.name);
+}
+
+async function deleteGame(game){
+  const ok = await showConfirm(`Remove "${game.name}" from your library?`, { title: 'REMOVE GAME?', confirmLabel: 'Remove' });
+  if(!ok) return;
+  const originalIndex = games.findIndex(g => g.id === game.id);
+  games = games.filter(g => g.id !== game.id);
+  saveData();
+  renderFolders();
+  render();
+  detailOverlay.classList.remove('show');
+  showToast('GAME REMOVED', {
+    actionLabel: 'Undo',
+    onAction: () => {
+      const insertAt = Math.min(originalIndex, games.length);
+      games.splice(insertAt < 0 ? games.length : insertAt, 0, game);
+      saveData();
+      renderFolders();
+      render();
+      showToast('GAME RESTORED');
+    }
+  });
+}
+
+// Delegated on document (not grid) because right-clicking a card reparents
+// its .compact-menu to <body> so it can escape ancestor stacking contexts
+// (see the contextmenu handler below) — if this stayed on grid, clicks on
+// Edit/Delete/Favorite inside a context-opened menu would never bubble up
+// to grid and the menu would look completely dead.
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+
+  if(!btn){
+    // Clicked the card body itself (not an action button)
+    const compactCard = e.target.closest('.compact-card');
+    if(compactCard){
+      if(selectMode){
+        toggleCardSelection(compactCard.dataset.id);
+      }else{
+        closeAllCompactMenus();
+        openDetail(compactCard.dataset.id);
+      }
+    }
+    return;
+  }
+
+  if(btn.dataset.action === 'select'){
+    e.stopPropagation();
+    toggleCardSelection(btn.dataset.id);
+    return;
+  }
+
+  if(btn.dataset.action === 'menu'){
+    e.stopPropagation();
+    const menu = grid.querySelector(`[data-menu="${btn.dataset.id}"]`);
+    const wasOpen = menu && menu.classList.contains('show');
+    closeAllCompactMenus();
+    if(menu && !wasOpen) menu.classList.add('show');
+    return;
+  }
+
+  const id = btn.dataset.id;
+  const game = games.find(g => g.id === id);
+  if(!game) return;
+
+  if(btn.dataset.action === 'launch'){
+    if(selectMode){ toggleCardSelection(id); return; }
+    await launchGame(game);
+  }
+  if(btn.dataset.action === 'favorite'){ e.stopPropagation(); closeAllCompactMenus(); toggleFavorite(game); }
+  if(btn.dataset.action === 'edit'){ closeAllCompactMenus(); openEditModal(game); }
+  if(btn.dataset.action === 'copy-path'){
+    closeAllCompactMenus();
+    if(!game.path){
+      showToast('NO PATH SET FOR THIS GAME');
+    }else{
+      navigator.clipboard.writeText(game.path);
+      showToast('PATH COPIED TO CLIPBOARD');
+    }
+  }
+  if(btn.dataset.action === 'delete'){ closeAllCompactMenus(); deleteGame(game); }
+});
+
+function toggleCardSelection(id){
+  if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  const card = grid.querySelector(`.compact-card[data-id="${id}"]`);
+  if(card) card.classList.toggle('selected', selectedIds.has(id));
+  const cb = grid.querySelector(`input[data-action="select"][data-id="${id}"]`);
+  if(cb) cb.checked = selectedIds.has(id);
+  updateBulkBar();
+}
+
+function updateBulkBar(){
+  const count = selectedIds.size;
+  document.getElementById('bulkCount').textContent = count + ' selected';
+  document.getElementById('bulkDeleteBtn').disabled = count === 0;
+  document.getElementById('bulkFavoriteBtn').disabled = count === 0;
+}
+
+function setSelectMode(on){
+  selectMode = on;
+  if(!on) selectedIds.clear();
+  grid.classList.toggle('select-mode', selectMode);
+  document.getElementById('selectModeBtn').classList.toggle('active', selectMode);
+  document.getElementById('bulkBar').classList.toggle('show', selectMode);
+  updateBulkBar();
+  render();
+}
+
+document.getElementById('selectModeBtn').addEventListener('click', () => setSelectMode(!selectMode));
+document.getElementById('bulkDoneBtn').addEventListener('click', () => setSelectMode(false));
+
+document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
+  if(selectedIds.size === 0) return;
+  const ok = await showConfirm(`Remove ${selectedIds.size} selected game${selectedIds.size === 1 ? '' : 's'} from your library?`, { title: 'REMOVE GAMES?', confirmLabel: 'Remove' });
+  if(!ok) return;
+  games = games.filter(g => !selectedIds.has(g.id));
+  selectedIds.clear();
+  await saveData();
+  renderFolders();
+  updateBulkBar();
+  render();
+  showToast('GAMES REMOVED');
+});
+
+document.getElementById('bulkFavoriteBtn').addEventListener('click', async () => {
+  if(selectedIds.size === 0) return;
+  games.forEach(g => { if(selectedIds.has(g.id)) g.favorite = true; });
+  await saveData();
+  render();
+  showToast('ADDED TO FAVORITES');
+});
+
+function toggleFavorite(game){
+  game.favorite = !game.favorite;
+  saveData();
+  render();
+  if(currentDetailId === game.id) updateDetailFavoriteBtn(game);
+}
+
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.compact-card')) closeAllCompactMenus();
+});
+
+let currentDetailId = null;
+
+function openDetail(id){
+  const game = games.find(g => g.id === id);
+  if(!game) return;
+  currentDetailId = id;
+
+  const color = defaultGameColor();
+  const banner = document.getElementById('detailBanner');
+  banner.style.setProperty('--detail-color', color);
+  if(game.banner){
+    banner.style.backgroundImage = `url("${game.banner}")`;
+    banner.classList.remove('no-image');
+  }else{
+    banner.style.backgroundImage = '';
+    banner.classList.add('no-image');
+    fetchBanner(game);
+  }
+
+  document.getElementById('detailTitle').parentElement.style.setProperty('--detail-color-dark', darken(color, 0.4));
+  document.getElementById('detailTitle').textContent = game.name;
+
+  const folderName = folders.find(f => f.id === game.folder)?.name;
+  const tag = document.getElementById('detailFolderTag');
+  if(folderName){
+    tag.textContent = folderName;
+    tag.style.visibility = 'visible';
+  }else{
+    tag.style.visibility = 'hidden';
+  }
+
+  document.getElementById('detailPlaytimeText').textContent = formatPlaytime(game.playtime || 0);
+  document.getElementById('detailLastPlayedText').textContent = formatLastPlayed(game.lastPlayed);
+  updateDetailFavoriteBtn(game);
+  document.getElementById('detailBrokenWarning').style.display = game.pathMissing ? 'block' : 'none';
+  document.getElementById('detailSessions').style.display = 'none';
+  renderSessionHistory(game);
+
+  detailOverlay.classList.add('show');
+}
+
+function renderSessionHistory(game){
+  const list = document.getElementById('detailSessionsList');
+  const sessions = (game.sessions || []).slice(-10).reverse();
+  list.innerHTML = sessions.length
+    ? sessions.map(s => `<li><span>${new Date(s.start).toLocaleDateString()}</span><span>${formatPlaytime(s.seconds)}</span></li>`).join('')
+    : '<li class="empty-sessions">No sessions recorded yet</li>';
+}
+
+document.getElementById('detailHistoryBtn').addEventListener('click', () => {
+  const wrap = document.getElementById('detailSessions');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+});
+
+function updateDetailFavoriteBtn(game){
+  document.getElementById('detailFavoriteBtn').classList.toggle('is-favorite', !!game.favorite);
+}
+
+function formatLastPlayed(ts){
+  if(!ts) return '';
+  const days = Math.floor((Date.now() - ts) / 86400000);
+  if(days <= 0) return '• Played today';
+  if(days === 1) return '• Played yesterday';
+  if(days < 30) return `• Played ${days} days ago`;
+  const months = Math.floor(days / 30);
+  if(months < 12) return `• Played ${months} month${months === 1 ? '' : 's'} ago`;
+  const years = Math.floor(months / 12);
+  return `• Played ${years} year${years === 1 ? '' : 's'} ago`;
+}
+
+function formatPlaytime(seconds){
+  if(!seconds) return 'Not played yet';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if(h > 0) return `${h}h ${m}m played`;
+  if(m > 0) return `${m}m played`;
+  return 'Less than a minute played';
+}
+
+async function fetchBanner(game){
+  if(!window.electronAPI || !window.electronAPI.fetchGameBanner) return;
+  try{
+    const url = await window.electronAPI.fetchGameBanner(game.name);
+    if(url){
+      game.banner = url;
+      saveData();
+      if(currentDetailId === game.id){
+        const banner = document.getElementById('detailBanner');
+        banner.style.backgroundImage = `url("${url}")`;
+        banner.classList.remove('no-image');
+      }
+    }
+  }catch(e){}
+}
+
+document.getElementById('detailCloseBtn').addEventListener('click', () => detailOverlay.classList.remove('show'));
+addBackdropClose(detailOverlay);
+
+document.getElementById('detailLaunchBtn').addEventListener('click', () => {
+  const game = games.find(g => g.id === currentDetailId);
+  if(game) launchGame(game);
+});
+document.getElementById('detailFavoriteBtn').addEventListener('click', () => {
+  const game = games.find(g => g.id === currentDetailId);
+  if(game) toggleFavorite(game);
+});
+document.getElementById('detailEditBtn').addEventListener('click', () => {
+  const game = games.find(g => g.id === currentDetailId);
+  if(game){
+    detailOverlay.classList.remove('show');
+    openEditModal(game);
+  }
+});
+document.getElementById('detailDeleteBtn').addEventListener('click', () => {
+  const game = games.find(g => g.id === currentDetailId);
+  if(game) deleteGame(game);
+});
+
+document.getElementById('addBtn').addEventListener('click', () => {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'ADD GAME';
+  document.getElementById('fName').value = '';
+  document.getElementById('fPath').value = '';
+  modalColor = defaultGameColor();
+  modalHeader = null;
+  modalHeaderCustom = false;
+  updateHeaderPreview();
+  overlay.classList.add('show');
+  setTimeout(() => document.getElementById('fName').focus(), 30);
+});
+
+document.getElementById('cancelBtn').addEventListener('click', () => overlay.classList.remove('show'));
+addBackdropClose(overlay);
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const name = document.getElementById('fName').value.trim();
+  const path = document.getElementById('fPath').value.trim();
+  if(!name){
+    showToast('GAME NEEDS A NAME');
+    return;
+  }
+  if(editingId){
+    const game = games.find(g => g.id === editingId);
+    game.name = name;
+    game.path = path;
+    delete game.color;
+    game.header = modalHeader || null;
+    game.headerCustom = modalHeaderCustom;
+  }else{
+    const folder = activeFolder !== 'all' ? activeFolder : '';
+    games.push({ id: Date.now().toString(), name, path, folder, header: modalHeader || null, headerCustom: modalHeaderCustom });
+  }
+  await saveData();
+  renderFolders();
+  render();
+  overlay.classList.remove('show');
+  showToast(editingId ? 'GAME UPDATED' : 'GAME ADDED');
+});
+
+function updateHeaderPreview(message){
+  const box = document.getElementById('headerBox');
+  const text = document.getElementById('headerPreviewText');
+  const resetBtn = document.getElementById('resetHeaderBtn');
+  box.style.setProperty('--card-color', modalColor);
+  if(modalHeader){
+    box.style.backgroundImage = `url("${modalHeader}")`;
+    text.style.display = 'none';
+    resetBtn.style.display = modalHeaderCustom ? 'flex' : 'none';
+  }else{
+    box.style.backgroundImage = '';
+    text.style.display = '';
+    text.textContent = message || 'No header yet';
+    resetBtn.style.display = 'none';
+  }
+}
+
+document.getElementById('fName').addEventListener('input', () => {
+  scheduleAutoHeader();
+});
+
+let headerFetchTimer = null;
+
+async function fetchAndSetHeader(name){
+  name = (name || '').trim();
+  if(!name) return;
+  if(!window.electronAPI || !window.electronAPI.fetchGameHeader) return;
+  if(!modalHeader) updateHeaderPreview('Auto-fetching...');
+  const url = await window.electronAPI.fetchGameHeader(name);
+  if(modalHeaderCustom) return; // user picked a custom header while we were fetching
+  if(url){
+    modalHeader = url;
+    updateHeaderPreview();
+  }else{
+    updateHeaderPreview('No header found');
+  }
+}
+
+function scheduleAutoHeader(){
+  if(modalHeaderCustom) return;
+  const name = document.getElementById('fName').value.trim();
+  if(!name) return;
+  clearTimeout(headerFetchTimer);
+  headerFetchTimer = setTimeout(() => fetchAndSetHeader(name), 600);
+}
+
+document.getElementById('editHeaderBtn').addEventListener('click', async () => {
+  if(!window.electronAPI || !window.electronAPI.pickImage){
+    showToast('ONLY WORKS IN THE APP');
+    return;
+  }
+  const dataUrl = await window.electronAPI.pickImage();
+  if(dataUrl){
+    modalHeader = dataUrl;
+    modalHeaderCustom = true;
+    updateHeaderPreview();
+  }
+});
+
+document.getElementById('resetHeaderBtn').addEventListener('click', () => {
+  modalHeader = null;
+  modalHeaderCustom = false;
+  updateHeaderPreview();
+  fetchAndSetHeader(document.getElementById('fName').value);
+});
+
+/* ---- Crop / reposition ---- */
+const CROP_TARGETS = {
+  header: { viewportW: 420, viewportH: 196, outW: 920,  outH: 430 }
+};
+let cropTarget = null;
+let cropScale0 = 1;
+let cropZoomExtra = 1; // multiplier on top of the base "cover" scale
+let cropX = 0, cropY = 0;
+let cropNaturalW = 0, cropNaturalH = 0;
+let cropDragging = false;
+let cropDragStartX = 0, cropDragStartY = 0, cropStartX = 0, cropStartY = 0;
+
+const cropOverlay = document.getElementById('cropOverlay');
+const cropViewport = document.getElementById('cropViewport');
+const cropImage = document.getElementById('cropImage');
+const cropZoomSlider = document.getElementById('cropZoomSlider');
+
+function cropTotalScale(){ return cropScale0 * cropZoomExtra; }
+
+function clampCropPosition(){
+  const conf = CROP_TARGETS[cropTarget];
+  const dispW = cropNaturalW * cropTotalScale();
+  const dispH = cropNaturalH * cropTotalScale();
+  const minX = Math.min(0, conf.viewportW - dispW);
+  const minY = Math.min(0, conf.viewportH - dispH);
+  cropX = Math.max(minX, Math.min(0, cropX));
+  cropY = Math.max(minY, Math.min(0, cropY));
+}
+
+function applyCropTransform(){
+  cropImage.style.transform = `translate(${cropX}px, ${cropY}px) scale(${cropTotalScale()})`;
+}
+
+async function resolveArtworkSource(src){
+  if(!src) return null;
+  if(src.startsWith('data:')) return src;
+  if(window.electronAPI && window.electronAPI.fetchImageData){
+    const dataUrl = await window.electronAPI.fetchImageData(src);
+    if(dataUrl) return dataUrl;
+  }
+  return src; // fall back to the remote URL; canvas export may fail if it's cross-origin
+}
+
+async function openCropModal(type){
+  const currentSrc = modalHeader;
+  if(!currentSrc){
+    showToast('NOTHING TO CROP YET');
+    return;
+  }
+  cropTarget = type;
+  const conf = CROP_TARGETS[type];
+  cropViewport.style.width = conf.viewportW + 'px';
+  cropViewport.style.height = conf.viewportH + 'px';
+  cropZoomSlider.value = 0;
+  cropZoomExtra = 1;
+
+  cropOverlay.classList.add('show');
+  cropImage.style.opacity = '0';
+
+  const resolved = await resolveArtworkSource(currentSrc);
+  if(!resolved){
+    showToast('COULD NOT LOAD IMAGE');
+    cropOverlay.classList.remove('show');
+    return;
+  }
+
+  cropImage.onload = () => {
+    cropNaturalW = cropImage.naturalWidth;
+    cropNaturalH = cropImage.naturalHeight;
+    cropScale0 = Math.max(conf.viewportW / cropNaturalW, conf.viewportH / cropNaturalH);
+    cropX = (conf.viewportW - cropNaturalW * cropTotalScale()) / 2;
+    cropY = (conf.viewportH - cropNaturalH * cropTotalScale()) / 2;
+    applyCropTransform();
+    cropImage.style.opacity = '1';
+  };
+  cropImage.src = resolved;
+}
+
+cropViewport.addEventListener('mousedown', (e) => {
+  cropDragging = true;
+  cropViewport.classList.add('dragging');
+  cropDragStartX = e.clientX;
+  cropDragStartY = e.clientY;
+  cropStartX = cropX;
+  cropStartY = cropY;
+});
+window.addEventListener('mousemove', (e) => {
+  if(!cropDragging) return;
+  cropX = cropStartX + (e.clientX - cropDragStartX);
+  cropY = cropStartY + (e.clientY - cropDragStartY);
+  clampCropPosition();
+  applyCropTransform();
+});
+window.addEventListener('mouseup', () => {
+  cropDragging = false;
+  cropViewport.classList.remove('dragging');
+});
+
+cropZoomSlider.addEventListener('input', (e) => {
+  cropZoomExtra = 1 + (parseInt(e.target.value, 10) / 100) * 2; // up to 3x extra zoom
+  clampCropPosition();
+  applyCropTransform();
+});
+
+document.getElementById('cropCancelBtn').addEventListener('click', () => {
+  cropOverlay.classList.remove('show');
+});
+addBackdropClose(cropOverlay);
+
+document.getElementById('cropApplyBtn').addEventListener('click', () => {
+  const conf = CROP_TARGETS[cropTarget];
+  const canvas = document.createElement('canvas');
+  canvas.width = conf.outW;
+  canvas.height = conf.outH;
+  const ctx = canvas.getContext('2d');
+  const factor = conf.outW / conf.viewportW;
+  try{
+    ctx.drawImage(
+      cropImage,
+      cropX * factor, cropY * factor,
+      cropNaturalW * cropTotalScale() * factor, cropNaturalH * cropTotalScale() * factor
+    );
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    modalHeader = dataUrl;
+    modalHeaderCustom = true;
+    updateHeaderPreview();
+    cropOverlay.classList.remove('show');
+    showToast('ARTWORK UPDATED');
+  }catch(err){
+    showToast('COULD NOT CROP THIS IMAGE');
+  }
+});
+
+document.getElementById('cropHeaderBtn').addEventListener('click', () => openCropModal('header'));
+
+function renderFolderColorPalette(){
+  const wrap = document.getElementById('folderColorPalette');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  FOLDER_COLOR_PALETTE.forEach(color => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'accent-swatch' + (modalFolderColor === color ? ' active' : '') + (color === '' ? ' none-swatch' : '');
+    btn.style.background = color || 'transparent';
+    btn.title = color || 'No color';
+    btn.addEventListener('click', () => {
+      modalFolderColor = color;
+      renderFolderColorPalette();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+document.getElementById('newFolderBtn').addEventListener('click', () => {
+  editingFolderId = null;
+  document.getElementById('folderModalTitle').textContent = 'NEW FOLDER';
+  document.getElementById('folderName').value = '';
+  document.getElementById('folderPinToggle').checked = false;
+  document.getElementById('folderPinInput').style.display = 'none';
+  document.getElementById('folderPinInput').value = '';
+  modalFolderColor = '';
+  renderFolderColorPalette();
+  folderOverlay.classList.add('show');
+  setTimeout(() => document.getElementById('folderName').focus(), 30);
+});
+document.getElementById('folderPinToggle').addEventListener('change', (e) => {
+  document.getElementById('folderPinInput').style.display = e.target.checked ? 'block' : 'none';
+  if(e.target.checked) setTimeout(() => document.getElementById('folderPinInput').focus(), 30);
+});
+document.getElementById('folderCancelBtn').addEventListener('click', () => folderOverlay.classList.remove('show'));
+addBackdropClose(folderOverlay);
+
+document.getElementById('folderSaveBtn').addEventListener('click', async () => {
+  const name = document.getElementById('folderName').value.trim();
+  if(!name){
+    showToast('FOLDER NEEDS A NAME');
+    return;
+  }
+  const wantsPin = document.getElementById('folderPinToggle').checked;
+  const pinValue = document.getElementById('folderPinInput').value.trim();
+  if(wantsPin && !pinValue){
+    showToast('ENTER A PIN OR UNCHECK THE LOCK');
+    return;
+  }
+  if(editingFolderId){
+    const folder = folders.find(f => f.id === editingFolderId);
+    if(folder){
+      folder.name = name;
+      folder.pin = wantsPin ? pinValue : '';
+      folder.color = modalFolderColor || '';
+      if(!wantsPin) unlockedFolders.add(folder.id); // no longer locked, treat as visible
+    }
+  }else{
+    folders.push({ id: Date.now().toString(), name, pin: wantsPin ? pinValue : '', color: modalFolderColor || '' });
+  }
+  await saveData();
+  renderFolders();
+  render();
+  folderOverlay.classList.remove('show');
+  showToast(editingFolderId ? 'FOLDER UPDATED' : 'FOLDER CREATED');
+});
+
+let searchDebounceTimer = null;
+document.getElementById('search').addEventListener('input', () => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => { currentPage = 1; render(); }, 120);
+});
+
+document.getElementById('sortSelect').addEventListener('change', (e) => {
+  sortBy = e.target.value;
+  currentPage = 1;
+  saveData();
+  render();
+});
+document.getElementById('perPageSelect').addEventListener('change', (e) => {
+  perPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+  currentPage = 1;
+  saveData();
+  render();
+});
+document.getElementById('prevPageBtn').addEventListener('click', () => {
+  if(currentPage > 1){ currentPage--; render(); }
+});
+document.getElementById('nextPageBtn').addEventListener('click', () => {
+  currentPage++; render();
+});
+
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  document.getElementById('settingsOverlay').classList.add('show');
+});
+document.getElementById('settingsCloseBtn').addEventListener('click', () => {
+  document.getElementById('settingsOverlay').classList.remove('show');
+});
+addBackdropClose(document.getElementById('settingsOverlay'));
+
+function computeStats(){
+  const totalSeconds = games.reduce((sum, g) => sum + (g.playtime || 0), 0);
+  let mostPlayed = null;
+  games.forEach(g => {
+    if((g.playtime || 0) > 0 && (!mostPlayed || g.playtime > mostPlayed.playtime)) mostPlayed = g;
+  });
+  const now = Date.now();
+  const weekMs = 7 * 86400000;
+  let thisWeek = 0, lastWeek = 0, longestSession = 0;
+  games.forEach(g => {
+    (g.sessions || []).forEach(s => {
+      const age = now - s.start;
+      if(age >= 0 && age < weekMs) thisWeek += s.seconds;
+      else if(age >= weekMs && age < weekMs * 2) lastWeek += s.seconds;
+      if(s.seconds > longestSession) longestSession = s.seconds;
+    });
+  });
+  const neverPlayed = games.filter(g => !(g.playtime > 0)).length;
+  const topPlayed = games.filter(g => (g.playtime || 0) > 0).sort((a,b) => b.playtime - a.playtime).slice(0, 5);
+  const folderBreakdown = folders
+    .map(f => ({
+      name: f.name,
+      color: f.color,
+      count: games.filter(g => g.folder === f.id).length
+    }))
+    .filter(f => f.count > 0)
+    .sort((a,b) => b.count - a.count);
+  const unfiledCount = games.filter(g => !g.folder).length;
+  return { totalSeconds, mostPlayed, thisWeek, lastWeek, gameCount: games.length, neverPlayed, topPlayed, folderBreakdown, unfiledCount, longestSession };
+}
+
+function renderStats(){
+  const s = computeStats();
+  const statsGrid = document.getElementById('statsGrid');
+  const cmp = s.lastWeek === 0 ? '' : (s.thisWeek >= s.lastWeek ? '▲' : '▼');
+  statsGrid.innerHTML = `
+    <div class="stat-tile"><span class="stat-value">${s.gameCount}</span><span class="stat-label">Games in library</span></div>
+    <div class="stat-tile"><span class="stat-value">${formatPlaytime(s.totalSeconds)}</span><span class="stat-label">Total playtime</span></div>
+    <div class="stat-tile"><span class="stat-value">${s.mostPlayed ? escapeHtml(s.mostPlayed.name) : '—'}</span><span class="stat-label">Most played</span></div>
+    <div class="stat-tile"><span class="stat-value">${formatPlaytime(s.thisWeek)} ${cmp}</span><span class="stat-label">This week (vs ${formatPlaytime(s.lastWeek)} last week)</span></div>
+    <div class="stat-tile"><span class="stat-value">${s.neverPlayed}</span><span class="stat-label">Never played</span></div>
+    <div class="stat-tile"><span class="stat-value">${formatPlaytime(s.longestSession)}</span><span class="stat-label">Longest session</span></div>
+  `;
+
+  const topList = document.getElementById('statsTopList');
+  const topMax = s.topPlayed.length ? s.topPlayed[0].playtime : 0;
+  topList.innerHTML = s.topPlayed.length
+    ? s.topPlayed.map(g => {
+        const pct = topMax ? Math.max(6, Math.round((g.playtime / topMax) * 100)) : 0;
+        return `<li>
+          <div class="stats-bar-row"><span class="stats-bar-label">${escapeHtml(g.name)}</span><span class="stats-bar-value">${formatPlaytime(g.playtime)}</span></div>
+          <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%"></div></div>
+        </li>`;
+      }).join('')
+    : '<li class="stats-empty">No playtime recorded yet</li>';
+}
+
+document.getElementById('darkModeBtn').addEventListener('click', () => {
+  theme = 'dark';
+  applyTheme();
+  saveData();
+});
+document.getElementById('lightModeBtn').addEventListener('click', () => {
+  theme = 'light';
+  applyTheme();
+  saveData();
+});
+
+document.getElementById('browseExeBtn').addEventListener('click', async () => {
+  if(!window.electronAPI){
+    showToast('BROWSE ONLY WORKS IN THE APP');
+    return;
+  }
+  const picked = await window.electronAPI.pickExe(gamesFolder);
+  if(picked){
+    document.getElementById('fPath').value = picked;
+    if(!document.getElementById('fName').value){
+      const fileName = picked.split(/[\\/]/).pop().replace(/\.exe$/i, '');
+      document.getElementById('fName').value = fileName;
+      scheduleAutoHeader();
+    }
+  }
+});
+
+document.getElementById('setGamesFolderBtn').addEventListener('click', async () => {
+  if(!window.electronAPI){
+    showToast('THIS ONLY WORKS IN THE APP');
+    return;
+  }
+  const picked = await window.electronAPI.pickFolder(gamesFolder);
+  if(picked){
+    gamesFolder = picked;
+    saveData();
+    renderGamesFolder();
+    showToast('GAMES FOLDER SET');
+  }
+});
+
+async function addNewGames(found){
+  const existingPaths = new Set(games.map(g => g.path));
+  const existingNorms = new Set(games.map(g => normalizeGameName(g.name)));
+  const newOnes = [];
+  let duplicates = 0;
+  (found || []).forEach(f => {
+    if(existingPaths.has(f.path)) return;
+    // Same normalized name as something already in the library (e.g. a
+    // Steam import matching a manually-added local copy) — skip it instead
+    // of adding what's probably the same game under a slightly different name.
+    if(existingNorms.has(normalizeGameName(f.name))){
+      duplicates++;
+      return;
+    }
+    existingNorms.add(normalizeGameName(f.name));
+    newOnes.push(f);
+  });
+  newOnes.forEach(f => {
+    games.push({
+      id: (Date.now() + Math.random()).toString(),
+      name: f.name,
+      path: f.path,
+      header: f.header || null,
+      folder: activeFolder !== 'all' ? activeFolder : '',
+      playtime: f.playtimeSeconds || 0
+    });
+  });
+  if(newOnes.length > 0){
+    await saveData();
+    renderFolders();
+    render();
+  }
+  return { added: newOnes.length, duplicates };
+}
+
+// Scan the local games folder for new .exe games. Returns {added, duplicates}.
+// silent=true suppresses the "nothing found" / "set folder first" toasts, for
+// use during automatic background scans where those messages would just be noise.
+async function scanLocalGames(silent){
+  if(!window.electronAPI || !window.electronAPI.scanExes) return { added: 0, duplicates: 0 };
+  if(!gamesFolder){
+    if(!silent) showToast('SET YOUR GAMES FOLDER FIRST');
+    return { added: 0, duplicates: 0 };
+  }
+  const found = await window.electronAPI.scanExes(gamesFolder);
+  return await addNewGames(found);
+}
+
+// Scan Steam's library for installed games not yet in the collection.
+async function scanSteam(silent){
+  if(!window.electronAPI || !window.electronAPI.scanSteamGames) return { added: 0, duplicates: 0 };
+  const found = await window.electronAPI.scanSteamGames();
+  if(found.length === 0) return { added: 0, duplicates: 0 };
+  return await addNewGames(found);
+}
+
+function summarizeScan(result, noun){
+  const parts = [];
+  if(result.added > 0) parts.push(`ADDED ${result.added} ${noun}${result.added === 1 ? '' : 'S'}`);
+  if(result.duplicates > 0) parts.push(`${result.duplicates} POSSIBLE DUPLICATE${result.duplicates === 1 ? '' : 'S'} SKIPPED`);
+  if(parts.length === 0) return `NO NEW ${noun}S FOUND`;
+  return parts.join(' — ');
+}
+
+document.getElementById('scanGamesBtn').addEventListener('click', async () => {
+  if(!window.electronAPI || !window.electronAPI.scanExes){
+    showToast('THIS ONLY WORKS IN THE APP');
+    return;
+  }
+  if(!gamesFolder){
+    showToast('SET YOUR GAMES FOLDER FIRST');
+    return;
+  }
+  showToast('SCANNING...');
+  const result = await scanLocalGames(false);
+  showToast(summarizeScan(result, 'GAME'));
+});
+
+document.getElementById('scanSteamBtn').addEventListener('click', async () => {
+  if(!window.electronAPI || !window.electronAPI.scanSteamGames){
+    showToast('THIS ONLY WORKS IN THE APP');
+    return;
+  }
+  showToast('SCANNING STEAM LIBRARY...');
+  const result = await scanSteam(false);
+  showToast(summarizeScan(result, 'STEAM GAME'));
+});
+
+// Combined refresh — scans both local folder and Steam library in one go.
+// Used by the toolbar refresh button (loud) and by automatic background
+// scanning on launch + on an interval (silent, only toasts if something new shows up).
+let libraryRefreshInFlight = false;
+async function refreshLibrary(silent){
+  if(!window.electronAPI || libraryRefreshInFlight) return;
+  libraryRefreshInFlight = true;
+  const btn = document.getElementById('refreshLibraryBtn');
+  if(btn){ btn.classList.add('spinning'); btn.disabled = true; }
+  try {
+    const [local, steam] = await Promise.all([
+      scanLocalGames(true),
+      scanSteam(true)
+    ]);
+    const total = local.added + steam.added;
+    const duplicates = local.duplicates + steam.duplicates;
+    if(total > 0 || duplicates > 0){
+      showToast(summarizeScan({ added: total, duplicates }, 'GAME'));
+    } else if(!silent){
+      showToast('LIBRARY IS UP TO DATE');
+    }
+    detectBrokenPaths();
+  } finally {
+    libraryRefreshInFlight = false;
+    if(btn){ btn.classList.remove('spinning'); btn.disabled = false; }
+  }
+}
+
+document.getElementById('refreshLibraryBtn').addEventListener('click', () => refreshLibrary(false));
+
+// Auto-scan on launch, then again every 10 minutes, so newly installed games
+// (local or Steam) show up without the user having to remember to hit refresh.
+// The interval is torn down while the window is minimized/hidden and restarted
+// on return — this is a launcher meant to sit minimized while you play, so it
+// shouldn't be doing filesystem/network work (or holding the CPU awake) in the
+// background the whole time.
+let autoScanInterval = null;
+function startAutoScan(){
+  if(autoScanInterval || !window.electronAPI) return;
+  autoScanInterval = setInterval(() => refreshLibrary(true), 10 * 60 * 1000);
+}
+function stopAutoScan(){
+  if(autoScanInterval){ clearInterval(autoScanInterval); autoScanInterval = null; }
+}
+if(window.electronAPI){
+  setTimeout(() => refreshLibrary(true), 1500);
+  startAutoScan();
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden) stopAutoScan();
+  else startAutoScan();
+});
+
+document.addEventListener('keydown', (e) => {
+  if(tutorialOverlay.classList.contains('show')){
+    if(e.key === 'Enter' || e.key === 'ArrowRight') document.getElementById('tutorialNextBtn').click();
+    if(e.key === 'ArrowLeft') document.getElementById('tutorialPrevBtn').click();
+    if(e.key === 'Escape') finishTutorial();
+    return;
+  }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a' && selectMode){
+    const typing = document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+    if(typing) return;
+    e.preventDefault();
+    grid.querySelectorAll('.compact-card').forEach(c => selectedIds.add(c.dataset.id));
+    render();
+    updateBulkBar();
+    return;
+  }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
+    e.preventDefault();
+    const searchInput = document.getElementById('search');
+    if(activeFolder === 'stats'){
+      activeFolder = 'all';
+      currentPage = 1;
+      renderFolders();
+      render();
+    }
+    searchInput.focus();
+    searchInput.select();
+    return;
+  }
+  if(e.key === 'Escape'){
+    [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('settingsOverlay'), document.getElementById('pinOverlay')].forEach(o => o.classList.remove('show'));
+    closeAllCompactMenus();
+    if(activeFolder === 'stats'){
+      activeFolder = 'all';
+      currentPage = 1;
+      renderFolders();
+      render();
+    }
+  }
+  if(e.key === 'Enter'){
+    if(overlay.classList.contains('show') && document.activeElement && document.activeElement.tagName === 'INPUT'){
+      document.getElementById('saveBtn').click();
+    }else if(folderOverlay.classList.contains('show') && document.activeElement && document.activeElement.tagName === 'INPUT'){
+      document.getElementById('folderSaveBtn').click();
+    }else if(confirmOverlay.classList.contains('show')){
+      document.getElementById('confirmOkBtn').click();
+    }
+  }
+
+  // Grid keyboard navigation — only when no modal is open and focus isn't in a text field.
+  const anyModalOpen = [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('settingsOverlay'), document.getElementById('pinOverlay'), tutorialOverlay].some(o => o.classList.contains('show'));
+  const typing = document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
+  if(anyModalOpen || typing || activeFolder === 'stats') return;
+
+  const cards = Array.from(grid.querySelectorAll('.compact-card'));
+  if(cards.length === 0) return;
+
+  if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(e.key)){
+    e.preventDefault();
+    const perRow = getCardsPerRow(cards);
+    if(selectedCardIndex === -1){
+      selectedCardIndex = 0;
+    }else if(e.key === 'ArrowRight'){
+      selectedCardIndex = Math.min(cards.length - 1, selectedCardIndex + 1);
+    }else if(e.key === 'ArrowLeft'){
+      selectedCardIndex = Math.max(0, selectedCardIndex - 1);
+    }else if(e.key === 'ArrowDown'){
+      selectedCardIndex = Math.min(cards.length - 1, selectedCardIndex + perRow);
+    }else if(e.key === 'ArrowUp'){
+      selectedCardIndex = Math.max(0, selectedCardIndex - perRow);
+    }
+    highlightSelectedCard(cards);
+  }else if(e.key === 'Enter'){
+    if(selectedCardIndex >= 0 && cards[selectedCardIndex]){
+      const game = games.find(g => g.id === cards[selectedCardIndex].dataset.id);
+      if(game) launchGame(game);
+    }
+  }else if(e.key === 'Delete' || e.key === 'Backspace'){
+    if(selectedCardIndex >= 0 && cards[selectedCardIndex]){
+      const game = games.find(g => g.id === cards[selectedCardIndex].dataset.id);
+      if(game) deleteGame(game);
+    }
+  }
+});
+
+function getCardsPerRow(cards){
+  if(cards.length < 2) return 1;
+  const firstTop = cards[0].offsetTop;
+  let count = 1;
+  for(let i = 1; i < cards.length; i++){
+    if(cards[i].offsetTop !== firstTop) break;
+    count++;
+  }
+  return count;
+}
+
+function highlightSelectedCard(cards){
+  cards.forEach((c, i) => c.classList.toggle('keyboard-focus', i === selectedCardIndex));
+  if(cards[selectedCardIndex]) cards[selectedCardIndex].scrollIntoView({ block: 'nearest' });
+}
+
+if(window.electronAPI && window.electronAPI.onGameSessionEnded){
+  window.electronAPI.onGameSessionEnded(({ exePath, seconds, startTime }) => {
+    const game = games.find(g => g.path === exePath);
+    if(game){
+      if(seconds){
+        game.playtime = (game.playtime || 0) + seconds;
+        game.sessions = game.sessions || [];
+        game.sessions.push({ start: startTime || (Date.now() - seconds * 1000), seconds });
+        if(game.sessions.length > 50) game.sessions = game.sessions.slice(-50);
+      }
+      game.lastPlayed = Date.now();
+      saveData();
+      if(currentDetailId === game.id){
+        document.getElementById('detailPlaytimeText').textContent = formatPlaytime(game.playtime);
+        document.getElementById('detailLastPlayedText').textContent = formatLastPlayed(game.lastPlayed);
+        renderSessionHistory(game);
+      }
+    }
+  });
+}
+
+// ---- First-boot tutorial ----------------------------------------------
+// Shared mini mock-up of the app frame (sidebar + toolbar + card grid + fab)
+// used as a base for every tutorial visual, with a step-specific highlight overlay.
+const M_FRAME = `
+  <defs>
+    <linearGradient id="mThumb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="var(--red-dark)"/>
+      <stop offset="1" stop-color="var(--bg)"/>
+    </linearGradient>
+    <linearGradient id="mFab" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--red)"/>
+      <stop offset="1" stop-color="var(--red-dark)"/>
+    </linearGradient>
+    <filter id="mShadow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.6" flood-color="#000" flood-opacity="0.32"/>
+    </filter>
+    <clipPath id="mThumb0"><rect x="72" y="49" width="38" height="31" rx="4"/></clipPath>
+    <clipPath id="mThumb1"><rect x="116" y="49" width="38" height="31" rx="4"/></clipPath>
+    <clipPath id="mThumb2"><rect x="160" y="49" width="38" height="31" rx="4"/></clipPath>
+    <clipPath id="mThumb3"><rect x="204" y="49" width="38" height="31" rx="4"/></clipPath>
+  </defs>
+  <rect x="1" y="1" width="258" height="148" rx="8" fill="var(--panel)" stroke="var(--border-soft)"/>
+  <rect x="1" y="1" width="60" height="148" rx="8" fill="var(--field-bg)"/>
+  <rect x="61" y="1" width="1" height="148" fill="var(--border-soft)"/>
+  <text x="10" y="14" font-family="Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="0.4" fill="var(--text-dim)">M<tspan fill="var(--red)">UNCHER</tspan></text>
+  <rect x="8" y="19" width="46" height="10" rx="3" fill="var(--red-dark)" opacity="0.5"/>
+  <text x="12" y="25.6" font-size="4.6" fill="var(--white)" font-family="Arial, sans-serif">All Games</text>
+  <path d="M12.5 40v-4.2M14.7 40v-2.6M16.9 40v-5.2" stroke="var(--text-dim)" stroke-width="0.9" stroke-linecap="round"/>
+  <text x="19" y="40" font-size="4.6" fill="var(--text-dim)" font-family="Arial, sans-serif">Library Stats</text>
+  <path d="M14 46.6l.9 1.7 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z" fill="none" stroke="var(--text-dim)" stroke-width="0.8"/>
+  <text x="18" y="51.6" font-size="4.6" fill="var(--text-dim)" font-family="Arial, sans-serif">Favorites</text>
+  <rect x="11.5" y="58" width="5.5" height="4.5" rx="1" fill="none" stroke="var(--text-dimmer)" stroke-width="0.8"/>
+  <text x="19" y="62.6" font-size="4.6" fill="var(--text-dimmer)" font-family="Arial, sans-serif">Fighting</text>
+  <rect x="8" y="68" width="46" height="12" rx="3" fill="none" stroke="var(--input-border)" stroke-dasharray="2 2"/>
+  <text x="31" y="75.6" text-anchor="middle" font-size="4.6" fill="var(--text-dimmer)" font-family="Arial, sans-serif">+ New folder</text>
+  <circle cx="17" cy="137" r="9" fill="var(--panel)" stroke="var(--input-border)"/>
+  <circle cx="17" cy="137" r="2.4" fill="none" stroke="var(--text-dimmer)" stroke-width="1"/>
+  <path d="M17 131.6v1.3M17 140.1v1.3M23 137h-1.3M11.3 137h-1.3M21.2 133.2l-.9.9M13.7 140.7l-.9.9M21.2 140.8l-.9-.9M13.7 133.3l-.9-.9" stroke="var(--text-dimmer)" stroke-width="0.9"/>
+  <text x="72" y="14" font-family="Arial, sans-serif" font-weight="700" font-size="5.5" letter-spacing="0.4" fill="var(--text-dim)">ALL GAMES</text>
+  <text x="72" y="21.5" font-size="4.4" fill="var(--text-dimmer)" font-family="Arial, sans-serif">4 games</text>
+  <rect x="72" y="27" width="122" height="13" rx="4" fill="var(--bg)" stroke="var(--input-border)"/>
+  <text x="78" y="35.2" font-size="4.6" fill="var(--text-dimmer)" font-family="Arial, sans-serif">Search your library...</text>
+  <rect x="198" y="27" width="30" height="13" rx="4" fill="var(--bg)" stroke="var(--input-border)"/>
+  <text x="203" y="35.2" font-size="4.4" fill="var(--text-dimmer)" font-family="Arial, sans-serif">Sort: Name</text>
+  <rect x="232" y="27" width="13" height="13" rx="4" fill="none" stroke="var(--input-border)"/>
+  <path d="M240.5 33.6a3.2 3.2 0 1 0 -1 2.4" fill="none" stroke="var(--text-dim)" stroke-width="0.9"/>
+  <path d="M240.5 31v2.6h-2.6" fill="none" stroke="var(--text-dim)" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="247" y="27" width="13" height="13" rx="4" fill="none" stroke="var(--input-border)"/>
+  <rect x="250.5" y="30.5" width="6" height="6" rx="1.3" fill="none" stroke="var(--text-dim)" stroke-width="0.9"/>
+  <path d="M252 33.5l1.1 1.1 2.2-2.4" fill="none" stroke="var(--text-dim)" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="72" y="49" width="38" height="52" rx="4" fill="var(--panel)" stroke="var(--border-soft)" filter="url(#mShadow)"/>
+  <rect x="72" y="49" width="38" height="31" fill="url(#mThumb)" clip-path="url(#mThumb0)" opacity="0.9"/>
+  <rect x="76" y="86" width="22" height="3.6" rx="1.8" fill="var(--border-soft)"/>
+  <circle cx="103" cy="87.8" r="0.9" fill="var(--text-dimmer)"/><circle cx="105.8" cy="87.8" r="0.9" fill="var(--text-dimmer)"/>
+  <rect x="116" y="49" width="38" height="52" rx="4" fill="var(--panel)" stroke="var(--border-soft)" filter="url(#mShadow)"/>
+  <rect x="116" y="49" width="38" height="31" fill="url(#mThumb)" clip-path="url(#mThumb1)" opacity="0.72"/>
+  <rect x="120" y="86" width="22" height="3.6" rx="1.8" fill="var(--border-soft)"/>
+  <circle cx="147" cy="87.8" r="0.9" fill="var(--text-dimmer)"/><circle cx="149.8" cy="87.8" r="0.9" fill="var(--text-dimmer)"/>
+  <rect x="160" y="49" width="38" height="52" rx="4" fill="var(--panel)" stroke="var(--border-soft)" filter="url(#mShadow)"/>
+  <rect x="160" y="49" width="38" height="31" fill="url(#mThumb)" clip-path="url(#mThumb2)" opacity="0.55"/>
+  <rect x="164" y="86" width="22" height="3.6" rx="1.8" fill="var(--border-soft)"/>
+  <circle cx="191" cy="87.8" r="0.9" fill="var(--text-dimmer)"/><circle cx="193.8" cy="87.8" r="0.9" fill="var(--text-dimmer)"/>
+  <rect x="204" y="49" width="38" height="52" rx="4" fill="var(--panel)" stroke="var(--border-soft)" filter="url(#mShadow)"/>
+  <rect x="204" y="49" width="38" height="31" fill="url(#mThumb)" clip-path="url(#mThumb3)" opacity="0.82"/>
+  <rect x="208" y="86" width="22" height="3.6" rx="1.8" fill="var(--border-soft)"/>
+  <circle cx="235" cy="87.8" r="0.9" fill="var(--text-dimmer)"/><circle cx="237.8" cy="87.8" r="0.9" fill="var(--text-dimmer)"/>
+  <path d="M104 55.5l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4z" fill="var(--white)" opacity="0.9"/>
+  <circle cx="237" cy="127" r="13" fill="url(#mFab)" filter="url(#mShadow)"/>
+  <path d="M237 121v12M231 127h12" stroke="var(--on-accent)" stroke-width="2" stroke-linecap="round"/>
+`;
+function mockup(overlay){
+  return `<svg viewBox="0 0 260 150" xmlns="http://www.w3.org/2000/svg">${M_FRAME}${overlay || ''}</svg>`;
+}
+const HI = 'fill="none" stroke="var(--red)" stroke-width="2" stroke-dasharray="3 3"';
+
+const TUTORIAL_STEPS = [
+  {
+    title: 'WELCOME TO MUNCHER',
+    body: 'Your own custom game launcher. A quick, comprehensive tour of the essentials — step back any time if you miss something.',
+    visual: mockup('')
+  },
+  {
+    title: 'ADD YOUR GAMES',
+    body: 'Tap the red + button to add a game by hand. Or open Settings, set a Games folder, and hit the refresh button to auto-detect everything inside it — Steam games import too, with playtime intact.',
+    visual: mockup(`<circle cx="237" cy="127" r="19" ${HI}/><rect x="230" y="25" width="17" height="17" rx="5" ${HI}/>`)
+  },
+  {
+    title: 'ORGANIZE WITH FOLDERS',
+    body: 'Click "+ New folder" in the sidebar to create one, then drag any game card onto a folder to file it there. Add a PIN when creating a folder to keep it private.',
+    visual: mockup(`<rect x="6" y="66" width="50" height="16" rx="4" ${HI}/><path d="M91 73 Q60 78 34 74" fill="none" stroke="var(--red)" stroke-width="1.6" stroke-dasharray="3 3"/><circle cx="91" cy="73" r="3" fill="var(--red)"/>`)
+  },
+  {
+    title: 'FAVORITES & SEARCH',
+    body: 'Hover a game card and click its star to pin it to the Favorites folder up top. Press Ctrl+F any time to jump straight into search.',
+    visual: mockup(`<circle cx="104" cy="58" r="8" ${HI}/><rect x="6" y="44" width="46" height="10" rx="2" ${HI}/><rect x="70" y="25" width="126" height="17" rx="5" ${HI}/>`)
+  },
+  {
+    title: 'TRACK YOUR STATS',
+    body: 'Open "Library Stats" in the sidebar for your total playtime, top-played games, and a full breakdown of your library.',
+    visual: mockup(`<rect x="6" y="33" width="46" height="10" rx="2" ${HI}/>`)
+  },
+  {
+    title: 'SUMMON FROM ANYWHERE',
+    body: 'Even minimized or mid-game, press Ctrl+Shift+M to instantly bring Muncher to the front. Press it again to send it back.',
+    visual: mockup(`<rect x="1" y="1" width="258" height="148" rx="8" fill="var(--bg)" opacity="0.55"/><rect x="52" y="60" width="156" height="28" rx="6" fill="var(--panel)" stroke="var(--red)" stroke-width="1.4"/><text x="130" y="78" text-anchor="middle" font-size="9" font-family="Arial, sans-serif" font-weight="700" fill="var(--red)" letter-spacing="0.5">CTRL+SHIFT+M</text>`)
+  }
+];
+let tutorialStep = 0;
+const tutorialOverlay = document.getElementById('tutorialOverlay');
+
+function renderTutorialStep(){
+  const step = TUTORIAL_STEPS[tutorialStep];
+  document.getElementById('tutorialTitle').textContent = step.title;
+  document.getElementById('tutorialBody').textContent = step.body;
+  document.getElementById('tutorialVisual').innerHTML = step.visual;
+  document.getElementById('tutorialStepCount').textContent = `STEP ${tutorialStep + 1} OF ${TUTORIAL_STEPS.length}`;
+  document.getElementById('tutorialNextBtn').textContent = tutorialStep === TUTORIAL_STEPS.length - 1 ? 'Finish' : 'Next';
+  const prevBtn = document.getElementById('tutorialPrevBtn');
+  prevBtn.disabled = tutorialStep === 0;
+  prevBtn.style.visibility = tutorialStep === 0 ? 'hidden' : 'visible';
+  const dots = document.getElementById('tutorialDots');
+  dots.innerHTML = TUTORIAL_STEPS.map((_, i) => `<span class="tutorial-dot${i === tutorialStep ? ' active' : ''}"></span>`).join('');
+}
+
+function showTutorial(){
+  tutorialStep = 0;
+  renderTutorialStep();
+  tutorialOverlay.classList.add('show');
+}
+
+function finishTutorial(){
+  tutorialOverlay.classList.remove('show');
+  try{ localStorage.setItem('muncher-tutorial-done', '1'); }catch(e){}
+}
+
+document.getElementById('tutorialNextBtn').addEventListener('click', () => {
+  if(tutorialStep === TUTORIAL_STEPS.length - 1){
+    finishTutorial();
+  }else{
+    tutorialStep++;
+    renderTutorialStep();
+  }
+});
+document.getElementById('tutorialPrevBtn').addEventListener('click', () => {
+  if(tutorialStep > 0){
+    tutorialStep--;
+    renderTutorialStep();
+  }
+});
+document.getElementById('tutorialSkipBtn').addEventListener('click', finishTutorial);
+document.getElementById('replayTutorialBtn').addEventListener('click', () => {
+  document.getElementById('settingsOverlay').classList.remove('show');
+  showTutorial();
+});
+
+loadData();
+
+if(!localStorage.getItem('muncher-tutorial-done')){
+  setTimeout(showTutorial, 400);
+}
+</script>
+</body>
+</html>
