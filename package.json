@@ -1,11 +1,11 @@
 {
   "name": "muncher",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "MUNCHER - custom game launcher",
   "main": "main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_GITHUB_USERNAME/muncher.git"
+    "url": "https://github.com/mellovy/muncher.git"
   },
   "scripts": {
     "start": "electron .",
