@@ -16,3 +16,6 @@ A lightweight Electron desktop launcher for organizing and launching your games.
 3. Click **More info**, then **Run anyway**.
 4. Follow the installer prompts.
 
+## Errors
+
+- For JS exception errors, **run Muncher as administrator**
