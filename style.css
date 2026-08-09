@@ -1313,6 +1313,22 @@ input[type="text"]:focus, select:focus{ border-color:var(--red); }
   line-height:1.5;
   margin:0 0 22px;
 }
+.confirm-checkbox-row{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  margin:-8px 0 22px;
+  font-size:13px;
+  color:var(--text-dim);
+  line-height:1.4;
+  cursor:pointer;
+  user-select:none;
+}
+.confirm-checkbox-row input[type="checkbox"]{
+  margin-top:2px;
+  accent-color:var(--red);
+  cursor:pointer;
+}
 .update-modal{ max-width:440px; }
 .update-notes-wrap{
   max-height:180px;

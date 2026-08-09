@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fetchGameHeader: (gameName) => ipcRenderer.invoke('fetch-game-header', gameName),
   fetchImageData: (url) => ipcRenderer.invoke('fetch-image-data', url),
   checkPaths: (exePaths) => ipcRenderer.invoke('check-paths', exePaths),
+  deleteGameFolder: (exePath, folderPath) => ipcRenderer.invoke('delete-game-folder', exePath, folderPath),
   
   // Game session tracking
   onGameSessionEnded: (callback) => ipcRenderer.on('game-session-ended', (event, data) => callback(data)),

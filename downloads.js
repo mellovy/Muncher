@@ -80,8 +80,6 @@ function makeArchiveFolder(destPath) {
 // ---------- Auto-extract ZIP files ----------
 
 async function maybeAutoExtract(item) {
-  if (item.source !== 'steamunlocked' && item.source !== 'steamrip') return false;
-  
   const extractPath = makeArchiveFolder(item.destPath);
   if (!extractPath) return false;
   
@@ -110,11 +108,12 @@ async function maybeAutoExtract(item) {
 
 function startHttpDownload(id, url, destPath, resumeFromBytes) {
   const item = findItem(id);
-  const fileFlags = resumeFromBytes > 0 ? 'r+' : 'w';
+  let fileFlags = resumeFromBytes > 0 ? 'r+' : 'w';
   let fd;
+  let currentDestPath = destPath;
   
   try {
-    fd = fs.openSync(destPath, fileFlags);
+    fd = fs.openSync(currentDestPath, fileFlags);
     if (resumeFromBytes > 0) fs.ftruncateSync(fd, resumeFromBytes);
   } catch (e) {
     updateProgress(id, { status: 'error', error: 'Could not open destination file' });
@@ -176,6 +175,34 @@ function startHttpDownload(id, url, destPath, resumeFromBytes) {
         return;
       }
 
+      // Handle Content-Disposition filename override if server provides one
+      const cdHeader = response.headers['content-disposition'];
+      if (cdHeader) {
+        const headerStr = Array.isArray(cdHeader) ? cdHeader[0] : cdHeader;
+        const match = /filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i.exec(headerStr);
+        if (match && match[1]) {
+          const serverName = decodeURIComponent(match[1]).replace(/[<>:"/\\|?*]/g, '_');
+          if (serverName && serverName !== item.name) {
+            const newDestPath = path.join(path.dirname(currentDestPath), serverName);
+            try {
+              closeFd();
+              if (fs.existsSync(currentDestPath) && currentDestPath !== newDestPath) {
+                fs.renameSync(currentDestPath, newDestPath);
+              }
+              currentDestPath = newDestPath;
+              fd = fs.openSync(currentDestPath, 'r+');
+              fdClosed = false;
+              
+              item.name = serverName;
+              item.destPath = currentDestPath;
+              updateProgress(id, { name: item.name, destPath: item.destPath });
+            } catch (e) {
+              console.error('Failed to rename download file from Content-Disposition header:', e);
+            }
+          }
+        }
+      }
+
       // Handle range request
       if (resumeFromBytes > 0 && response.statusCode !== 206) {
         try { fs.ftruncateSync(fd, 0); } catch (e) {}
@@ -197,6 +224,7 @@ function startHttpDownload(id, url, destPath, resumeFromBytes) {
       updateProgress(id, { status: 'downloading', totalBytes: total });
 
       response.on('data', (chunk) => {
+        if (entry.userPaused) return; // ignore trailing data after an intentional abort
         try {
           fs.writeSync(fd, chunk, 0, chunk.length, received);
         } catch (e) {
@@ -205,7 +233,8 @@ function startHttpDownload(id, url, destPath, resumeFromBytes) {
           return;
         }
         received += chunk.length;
-        
+        entry.receivedBytes = received; // exact count, for an accurate pause/resume point
+
         const now = Date.now();
         if (now - lastTick > 300) {
           const speed = ((received - lastReceived) / ((now - lastTick) / 1000));
@@ -220,13 +249,13 @@ function startHttpDownload(id, url, destPath, resumeFromBytes) {
       });
 
       response.on('end', async () => {
+        if (entry.userPaused) return; // pause already handled status/cleanup
         closeFd();
         active.delete(id);
         
         const it = findItem(id);
         if (it && it.status !== 'cancelled') {
-          if ((it.source === 'steamunlocked' || it.source === 'steamrip') && 
-              path.extname(it.destPath).toLowerCase() === '.zip') {
+          if (path.extname(it.destPath).toLowerCase() === '.zip') {
             updateProgress(id, { 
               status: 'extracting', 
               receivedBytes: received, 
@@ -247,16 +276,22 @@ function startHttpDownload(id, url, destPath, resumeFromBytes) {
       });
 
       response.on('error', () => {
+        if (entry.userPaused) return; // abort-induced error from a pause, not a real failure
         closeFd();
         active.delete(id);
+        const it = findItem(id);
+        if (it && it.status === 'cancelled') return; // abort-induced error from a cancel
         updateProgress(id, { status: 'error', error: 'Connection lost' });
         saveState();
       });
     });
 
     request.on('error', (err) => {
+      if (entry.userPaused) return; // abort-induced error from a pause, not a real failure
       closeFd();
       active.delete(id);
+      const it = findItem(id);
+      if (it && it.status === 'cancelled') return; // abort-induced error from a cancel
       updateProgress(id, { status: 'error', error: err.message || 'Network error' });
       saveState();
     });
@@ -275,17 +310,27 @@ function addHttpDownload({ url, saveDir, source }) {
   
   try {
     const urlObj = new URL(url);
-    let pathName = urlObj.pathname;
-    if (!pathName || pathName === '/') {
-      const params = new URLSearchParams(urlObj.search);
-      for (const [key, value] of params) {
-        if (value && /\.(zip|rar|7z|exe|iso|dmg|pkg)$/i.test(value)) {
-          pathName = '/' + value;
-          break;
+    const searchParams = urlObj.searchParams;
+    
+    // Priority 1: Check query string for explicit filename parameter (e.g. UploadHaven's ?filename=...)
+    const explicitFilename = searchParams.get('filename') || searchParams.get('file') || searchParams.get('name');
+    
+    if (explicitFilename) {
+      name = decodeURIComponent(explicitFilename);
+    } else {
+      // Priority 2: Fallback to searching path or other query params for a valid filename
+      let pathName = urlObj.pathname;
+      if (!pathName || pathName === '/') {
+        for (const [key, value] of searchParams) {
+          if (value && /\.(zip|rar|7z|exe|iso|dmg|pkg)$/i.test(value)) {
+            pathName = '/' + value;
+            break;
+          }
         }
       }
+      name = decodeURIComponent(path.basename(pathName)) || 'download';
     }
-    name = decodeURIComponent(path.basename(pathName)) || 'download';
+    
     name = name.replace(/[<>:"/\\|?*]/g, '_');
   } catch (e) {
     name = 'download';
@@ -321,11 +366,25 @@ function addHttpDownload({ url, saveDir, source }) {
 
 function pauseHttpDownload(id) {
   const entry = active.get(id);
-  if (entry && entry.request) {
-    try { entry.request.abort(); } catch (e) {}
+  let preciseReceived;
+  if (entry) {
+    // Tell the in-flight request/response handlers to ignore the error/end
+    // events that request.abort() is about to trigger asynchronously —
+    // without this they race the 'paused' status below and silently
+    // overwrite it back to 'error' a moment later.
+    entry.userPaused = true;
+    if (entry.request) {
+      try { entry.request.abort(); } catch (e) {}
+    }
+    if (entry.closeFd) entry.closeFd();
+    if (typeof entry.receivedBytes === 'number') preciseReceived = entry.receivedBytes;
   }
   active.delete(id);
-  updateProgress(id, { status: 'paused', speedBps: 0 });
+  updateProgress(id, {
+    status: 'paused',
+    speedBps: 0,
+    ...(preciseReceived !== undefined ? { receivedBytes: preciseReceived } : {})
+  });
   saveState();
 }
 
@@ -397,13 +456,24 @@ async function addTorrentDownload({ magnetOrUrl, saveDir }) {
     });
   });
 
-  torrent.on('done', () => {
-    updateProgress(id, { 
-      status: 'completed', 
-      receivedBytes: torrent.length, 
-      totalBytes: torrent.length, 
-      speedBps: 0 
-    });
+  torrent.on('done', async () => {
+    const it = findItem(id);
+    if (it && path.extname(it.destPath).toLowerCase() === '.zip') {
+      updateProgress(id, { 
+        status: 'extracting', 
+        receivedBytes: torrent.length, 
+        totalBytes: torrent.length, 
+        speedBps: 0 
+      });
+      await maybeAutoExtract(it);
+    } else {
+      updateProgress(id, { 
+        status: 'completed', 
+        receivedBytes: torrent.length, 
+        totalBytes: torrent.length, 
+        speedBps: 0 
+      });
+    }
     active.delete(id);
     saveState();
   });

@@ -330,6 +330,10 @@
   <div class="modal confirm-modal">
     <h2 id="confirmTitle">ARE YOU SURE?</h2>
     <p id="confirmMessage" class="confirm-message"></p>
+    <label id="confirmCheckboxRow" class="confirm-checkbox-row" style="display:none;">
+      <input type="checkbox" id="confirmCheckbox">
+      <span id="confirmCheckboxLabel"></span>
+    </label>
     <div class="modal-actions">
       <button class="btn ghost" id="confirmCancelBtn">Cancel</button>
       <button class="btn danger-btn" id="confirmOkBtn">Confirm</button>
@@ -700,8 +704,26 @@ function showConfirm(message, opts){
   const okBtn = document.getElementById('confirmOkBtn');
   okBtn.textContent = opts.confirmLabel || 'Confirm';
   okBtn.classList.toggle('danger-btn', opts.danger !== false);
+
+  const checkboxRow = document.getElementById('confirmCheckboxRow');
+  const checkbox = document.getElementById('confirmCheckbox');
+  if(opts.checkboxLabel){
+    document.getElementById('confirmCheckboxLabel').textContent = opts.checkboxLabel;
+    checkbox.checked = !!opts.checkboxDefault;
+    checkboxRow.style.display = 'flex';
+  }else{
+    checkboxRow.style.display = 'none';
+    checkbox.checked = false;
+  }
+
   confirmOverlay.classList.add('show');
-  return new Promise((resolve) => { confirmResolve = resolve; });
+  // Resolves with a plain boolean when no checkbox was requested, or
+  // { confirmed, checked } when opts.checkboxLabel was provided.
+  return new Promise((resolve) => {
+    confirmResolve = (confirmed) => {
+      resolve(opts.checkboxLabel ? { confirmed, checked: checkbox.checked } : confirmed);
+    };
+  });
 }
 document.getElementById('confirmOkBtn').addEventListener('click', () => {
   confirmOverlay.classList.remove('show');
@@ -1511,25 +1533,48 @@ function openEditModal(game){
 }
 
 async function deleteGame(game){
-  const ok = await showConfirm(`Remove "${game.name}" from your library?`, { title: 'REMOVE GAME?', confirmLabel: 'Remove' });
+  // Only offer the "delete files too" checkbox for real local paths —
+  // steam:// links etc. have nothing on disk for us to remove.
+  const hasLocalPath = !!game.path && !/^[a-z0-9.+-]+:\/\//i.test(game.path);
+
+  const result = await showConfirm(`Remove "${game.name}" from your library?`, {
+    title: 'REMOVE GAME?',
+    confirmLabel: 'Remove',
+    checkboxLabel: hasLocalPath ? 'Also delete the game folder from disk' : null
+  });
+  const ok = hasLocalPath ? result.confirmed : result;
   if(!ok) return;
+  const alsoDeleteFiles = hasLocalPath && result.checked;
+
   const originalIndex = games.findIndex(g => g.id === game.id);
   games = games.filter(g => g.id !== game.id);
   saveData();
   renderFolders();
   render();
   detailOverlay.classList.remove('show');
-  showToast('GAME REMOVED', {
-    actionLabel: 'Undo',
-    onAction: () => {
-      const insertAt = Math.min(originalIndex, games.length);
-      games.splice(insertAt < 0 ? games.length : insertAt, 0, game);
-      saveData();
-      renderFolders();
-      render();
-      showToast('GAME RESTORED');
+
+  let deletedFolderPath = null;
+  if(alsoDeleteFiles && window.electronAPI?.deleteGameFolder){
+    const res = await window.electronAPI.deleteGameFolder(game.path, game.folderPath);
+    if(res?.ok){
+      deletedFolderPath = res.deletedPath;
+      showToast('GAME REMOVED & FILES DELETED');
+    }else{
+      showToast(`GAME REMOVED (files not deleted: ${res?.error || 'unknown error'})`);
     }
-  });
+  }else{
+    showToast('GAME REMOVED', {
+      actionLabel: 'Undo',
+      onAction: () => {
+        const insertAt = Math.min(originalIndex, games.length);
+        games.splice(insertAt < 0 ? games.length : insertAt, 0, game);
+        saveData();
+        renderFolders();
+        render();
+        showToast('GAME RESTORED');
+      }
+    });
+  }
 }
 
 // Delegated on document (not grid) because right-clicking a card reparents
@@ -1622,15 +1667,39 @@ document.getElementById('bulkDoneBtn').addEventListener('click', () => setSelect
 
 document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
   if(selectedIds.size === 0) return;
-  const ok = await showConfirm(`Remove ${selectedIds.size} selected game${selectedIds.size === 1 ? '' : 's'} from your library?`, { title: 'REMOVE GAMES?', confirmLabel: 'Remove' });
+  const selectedGames = games.filter(g => selectedIds.has(g.id));
+  const anyLocalPath = selectedGames.some(g => g.path && !/^[a-z0-9.+-]+:\/\//i.test(g.path));
+
+  const result = await showConfirm(
+    `Remove ${selectedIds.size} selected game${selectedIds.size === 1 ? '' : 's'} from your library?`,
+    {
+      title: 'REMOVE GAMES?',
+      confirmLabel: 'Remove',
+      checkboxLabel: anyLocalPath ? 'Also delete their game folders from disk' : null
+    }
+  );
+  const ok = anyLocalPath ? result.confirmed : result;
   if(!ok) return;
+  const alsoDeleteFiles = anyLocalPath && result.checked;
+
   games = games.filter(g => !selectedIds.has(g.id));
   selectedIds.clear();
   await saveData();
   renderFolders();
   updateBulkBar();
   render();
-  showToast('GAMES REMOVED');
+
+  if(alsoDeleteFiles && window.electronAPI?.deleteGameFolder){
+    let failCount = 0;
+    for(const g of selectedGames){
+      if(!g.path || /^[a-z0-9.+-]+:\/\//i.test(g.path)) continue;
+      const res = await window.electronAPI.deleteGameFolder(g.path, g.folderPath);
+      if(!res?.ok) failCount++;
+    }
+    showToast(failCount === 0 ? 'GAMES REMOVED & FILES DELETED' : `GAMES REMOVED (${failCount} folder${failCount === 1 ? '' : 's'} not deleted)`);
+  }else{
+    showToast('GAMES REMOVED');
+  }
 });
 
 document.getElementById('bulkFavoriteBtn').addEventListener('click', async () => {
@@ -2236,6 +2305,7 @@ async function addNewGames(found){
       id: (Date.now() + Math.random()).toString(),
       name: f.name,
       path: f.path,
+      folderPath: f.folderPath || null,
       header: f.header || null,
       folder: activeFolder !== 'all' ? activeFolder : '',
       playtime: f.playtimeSeconds || 0

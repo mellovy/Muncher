@@ -454,7 +454,7 @@ ipcMain.handle('scan-exes', async (event, folderPath) => {
     const topDir = path.join(folderPath, dirEnt.name);
     const exePath = findGameExeCandidates(topDir, dirEnt.name);
     if (exePath){
-      results.push({ name: dirEnt.name, path: exePath });
+      results.push({ name: dirEnt.name, path: exePath, folderPath: topDir });
     }
   }
   return results;
@@ -624,6 +624,47 @@ ipcMain.handle('fetch-game-header', async (event, gameName) => {
 ipcMain.handle('open-folder', async (event, folderPath) => {
   shell.openPath(folderPath);
   return true;
+});
+
+ipcMain.handle('delete-game-folder', async (event, exePath, explicitFolderPath) => {
+  // Deletes the game's install folder (used when a game is removed from the
+  // library and the user opts to also delete the files). When the caller
+  // knows the real top-level game folder (e.g. from scan-exes, where the exe
+  // can be nested a few levels deeper — bin/, Binaries/Win64/, etc.) it's
+  // passed as explicitFolderPath; otherwise we fall back to the exe's parent.
+  if (typeof exePath !== 'string' || !exePath) {
+    return { ok: false, error: 'No path provided.' };
+  }
+  // Steam / protocol "paths" (steam://, etc.) aren't real files — nothing to delete.
+  if (/^[a-z0-9.+-]+:\/\//i.test(exePath) && !/^file:\/\//i.test(exePath)) {
+    return { ok: false, error: 'Not a local file path (e.g. a Steam link) — nothing to delete.' };
+  }
+
+  const folderPath = (typeof explicitFolderPath === 'string' && explicitFolderPath)
+    ? explicitFolderPath
+    : path.dirname(exePath);
+  const parsed = path.parse(folderPath);
+
+  // Refuse to delete a drive root, home directory, or anything suspiciously
+  // shallow — a bad path here should never be able to wipe out C:\ etc.
+  const normalized = path.resolve(folderPath);
+  const isRoot = normalized === parsed.root;
+  const home = app.getPath('home');
+  const segmentCount = normalized.split(path.sep).filter(Boolean).length;
+
+  if (isRoot || normalized === path.resolve(home) || segmentCount < 2) {
+    return { ok: false, error: `Refusing to delete "${normalized}" — path looks too broad to be a game folder.` };
+  }
+
+  try {
+    if (!fs.existsSync(normalized)) {
+      return { ok: false, error: 'Folder no longer exists.' };
+    }
+    await fs.promises.rm(normalized, { recursive: true, force: true });
+    return { ok: true, deletedPath: normalized };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  }
 });
 
 ipcMain.handle('check-paths', async (event, exePaths) => {
