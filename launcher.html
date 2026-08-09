@@ -89,6 +89,43 @@
         </div>
       </div>
     </div>
+
+    <div class="downloads-page" id="downloadsPage" style="display:none;">
+      <div class="dl-stat-strip" id="dlStatStrip"></div>
+      <div class="teeth"></div>
+
+      <div class="downloads-top-block">
+        <div class="downloads-add-row downloads-main-row">
+          <svg class="dl-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <input type="text" id="searchQueryInput" placeholder="Search games to download...">
+          <button class="dl-icon-btn" id="downloadPopupBtn" type="button" title="Add direct URL / magnet"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="dl-add-btn" id="searchBtn">Search</button>
+        </div>
+        <div class="downloads-popup" id="downloadPopup" style="display:none;">
+          <div class="downloads-popup-row">
+            <input type="text" id="downloadUrlPopupInput" placeholder="Paste a direct download URL or magnet link...">
+            <button class="dl-add-btn" id="downloadPopupAddBtn">Add</button>
+            <button class="dl-icon-btn" id="downloadPopupCloseBtn" type="button" title="Close">×</button>
+          </div>
+          <div class="downloads-popup-note">Direct downloads are secondary. Start with a search whenever possible.</div>
+        </div>
+      </div>
+      <div class="downloads-subrow">
+        <span class="downloads-note">Search for a game, or use + to add a direct download URL or magnet link.</span>
+      </div>
+      <div class="search-results" id="searchResults" style="display:none;"></div>
+
+      <div class="downloads-section-label">
+        <span>Queue</span>
+      </div>
+      <div class="downloads-list" id="downloadsList"></div>
+      <div class="downloads-empty" id="downloadsEmpty" style="display:none;">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <p>Nothing queued yet</p>
+        <span>Paste a link above or run a search to begin.</span>
+      </div>
+
+    </div>
   </main>
 </div>
 
@@ -383,6 +420,236 @@ let perPage = 24;
 let currentPage = 1;
 const DEFAULT_ACCENT = '#e21414';
 let accentColor = DEFAULT_ACCENT;
+
+// --- Downloads panel state ---
+let downloadItems = [];
+let downloadsSaveDir = '';
+
+function formatBytes(n){
+  if(!n || n <= 0) return '0 B';
+  const units = ['B','KB','MB','GB','TB'];
+  let i = 0;
+  while(n >= 1024 && i < units.length - 1){ n /= 1024; i++; }
+  return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
+function formatSpeed(bps){
+  if(!bps || bps <= 0) return '';
+  return `${formatBytes(bps)}/s`;
+}
+
+async function initDownloads(){
+  try{
+    downloadItems = await window.electronAPI.downloadsGetAll();
+    downloadsSaveDir = await window.electronAPI.downloadsGetDefaultDir();
+  }catch(e){ downloadItems = []; }
+  window.electronAPI.onDownloadsUpdated((list) => {
+    downloadItems = list;
+    if(activeFolder === 'downloads') renderDownloadsPage();
+    renderFolders();
+  });
+  window.electronAPI.onDownloadProgress(({ id, ...patch }) => {
+    const it = downloadItems.find(d => d.id === id);
+    if(it) Object.assign(it, patch);
+    if(activeFolder === 'downloads') renderDownloadsPage();
+    if(patch.status === 'downloading' || patch.status === undefined) return;
+    renderFolders(); // status changes (paused/completed/error) affect the nav badge count
+  });
+}
+
+function renderDownloadsPage(){
+  const list = document.getElementById('downloadsList');
+  const empty = document.getElementById('downloadsEmpty');
+  const statStrip = document.getElementById('dlStatStrip');
+  if(!list) return;
+
+  if(statStrip){
+    const activeCount = downloadItems.filter(d => d.status === 'downloading').length;
+    const pausedCount = downloadItems.filter(d => d.status === 'paused').length;
+    const completedCount = downloadItems.filter(d => d.status === 'completed').length;
+    const totalSpeed = downloadItems.filter(d => d.status === 'downloading').reduce((sum, d) => sum + (d.speedBps || 0), 0);
+    statStrip.innerHTML = `
+      <div class="dl-stat-tile">
+        <span class="dl-stat-value">${activeCount}</span>
+        <span class="dl-stat-label">Active</span>
+      </div>
+      <div class="dl-stat-tile">
+        <span class="dl-stat-value">${formatSpeed(totalSpeed) || '0 B/s'}</span>
+        <span class="dl-stat-label">Combined speed</span>
+      </div>
+      <div class="dl-stat-tile">
+        <span class="dl-stat-value">${pausedCount}</span>
+        <span class="dl-stat-label">Paused</span>
+      </div>
+      <div class="dl-stat-tile">
+        <span class="dl-stat-value">${completedCount}</span>
+        <span class="dl-stat-label">Completed</span>
+      </div>`;
+  }
+
+  if(downloadItems.length === 0){
+    list.innerHTML = '';
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = downloadItems.map(d => {
+    const pct = d.totalBytes ? Math.min(100, Math.round((d.receivedBytes / d.totalBytes) * 100)) : 0;
+    const statusLabel = {
+      downloading: 'Downloading', paused: 'Paused', completed: 'Completed',
+      error: d.error || 'Error', cancelled: 'Cancelled'
+    }[d.status] || d.status;
+    const isTorrent = d.kind === 'torrent';
+    const kindIcon = isTorrent
+      ? '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3v4M12 17v4M21 12h-4M7 12H3"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+    const canPause = d.status === 'downloading';
+    const canResume = d.status === 'paused' || d.status === 'error';
+    const peers = (isTorrent && d.peers != null && d.status === 'downloading') ? ` · ${d.peers} peers` : '';
+    const showBar = ['downloading', 'paused', 'extracting'].includes(d.status);
+    return `
+      <div class="download-row dl-row-${d.status}" data-id="${d.id}">
+        <div class="dl-kind-icon dl-kind-${d.kind}">${kindIcon}</div>
+        <div class="dl-row-main">
+          <div class="download-row-top">
+            <span class="dl-name" title="${escapeHtml(d.name || '')}">${escapeHtml(d.name || 'download')}</span>
+            <span class="dl-status dl-status-${d.status}">${escapeHtml(String(statusLabel))}</span>
+          </div>
+          ${showBar ? `<div class="dl-progress-track"><div class="dl-progress-fill dl-progress-${d.status}" style="width:${Math.max(pct, d.status === 'downloading' && pct === 0 ? 3 : 0)}%"></div></div>` : ''}
+          <div class="download-row-bottom">
+            <span class="dl-meta">${formatBytes(d.receivedBytes)}${d.totalBytes ? ' / ' + formatBytes(d.totalBytes) : ''}${d.totalBytes ? ` · ${pct}%` : ''}${d.status === 'downloading' ? ' · ' + (formatSpeed(d.speedBps) || 'starting…') : ''}${peers}</span>
+            <span class="dl-actions">
+              ${canPause ? `<button class="dl-action-btn" data-action="pause" data-id="${d.id}" title="Pause"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>Pause</button>` : ''}
+              ${canResume ? `<button class="dl-action-btn" data-action="resume" data-id="${d.id}" title="Resume"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" stroke="none"><polygon points="6 3 20 12 6 21 6 3"/></svg>Resume</button>` : ''}
+              ${d.status === 'completed' ? `<button class="dl-action-btn" data-action="open" data-id="${d.id}">Open folder</button>` : ''}
+              <button class="dl-action-btn dl-action-danger" data-action="remove" data-id="${d.id}">${d.status === 'completed' ? 'Remove' : 'Cancel'}</button>
+            </span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.dl-action-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      const it = downloadItems.find(d => d.id === id);
+      if(action === 'pause') await window.electronAPI.downloadsPause(id);
+      else if(action === 'resume') await window.electronAPI.downloadsResume(id);
+      else if(action === 'remove') await window.electronAPI.downloadsRemove(id);
+      else if(action === 'open' && it) await window.electronAPI.openFolder(it.destPath);
+    });
+  });
+}
+
+function initDownloadsUI(){
+  const downloadPopupBtn = document.getElementById('downloadPopupBtn');
+  const downloadPopup = document.getElementById('downloadPopup');
+  const downloadUrlPopupInput = document.getElementById('downloadUrlPopupInput');
+  const downloadPopupAddBtn = document.getElementById('downloadPopupAddBtn');
+  const downloadPopupCloseBtn = document.getElementById('downloadPopupCloseBtn');
+
+  async function getDownloadSaveDir(){
+    return gamesFolder || downloadsSaveDir;
+  }
+
+  function showDirectDownloadPopup(show){
+    if(!downloadPopup) return;
+    downloadPopup.style.display = show ? 'block' : 'none';
+    if(show && downloadUrlPopupInput){
+      downloadUrlPopupInput.focus();
+    }
+  }
+
+  async function submitDirectDownload(){
+    const value = downloadUrlPopupInput?.value.trim();
+    if(!value) return;
+    downloadUrlPopupInput.value = '';
+    showDirectDownloadPopup(false);
+    const saveDir = await getDownloadSaveDir();
+    if(value.startsWith('magnet:')){
+      await window.electronAPI.downloadsAddTorrent({ magnetOrUrl: value, saveDir });
+    }else{
+      await window.electronAPI.downloadsAddHttp({ url: value, saveDir });
+    }
+    downloadItems = await window.electronAPI.downloadsGetAll();
+    renderDownloadsPage();
+    renderFolders();
+  }
+
+  const searchInput = document.getElementById('searchQueryInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const searchResults = document.getElementById('searchResults');
+
+  async function searchGames(){
+    const query = searchInput?.value.trim();
+    if(!query) return;
+    searchBtn.disabled = true;
+    searchResults.style.display = 'block';
+    searchResults.innerHTML = `<div class="scan-status">Searching for ${escapeHtml(query)}…</div>`;
+    try {
+      const res = await window.electronAPI.downloadsSearchSources(query);
+      if(!res.ok){
+        searchResults.innerHTML = `<div class="scan-status scan-error">${escapeHtml(res.error || 'Search failed')}</div>`;
+        return;
+      }
+      if(!res.results || res.results.length === 0){
+        searchResults.innerHTML = `<div class="scan-status">No results found for ${escapeHtml(query)}.</div>`;
+        return;
+      }
+      searchResults.innerHTML = res.results.map((item, index) => `
+        <div class="scan-link-row">
+          <div class="search-entry">
+${(item.header || item.cover) ? `<img class="search-thumb" src="${escapeHtml(item.header || item.cover)}" alt="${escapeHtml(item.title)}">` : ''}
+            <div class="search-entry-copy">
+              <span class="scan-link-label">${escapeHtml(item.title)}</span>
+              <span class="search-entry-subrow">
+                <span class="search-source-tag">${escapeHtml(item.source || 'Unknown')}</span>
+                ${item.fileSize ? `<span class="search-file-size">${escapeHtml(item.fileSize)}</span>` : ''}
+              </span>
+            </div>
+          </div>
+          <button class="dl-action-btn" data-page-url="${escapeHtml(item.pageUrl)}" data-source="${escapeHtml(item.source || 'unknown')}">Add download</button>
+        </div>
+      `).join('');
+      searchResults.querySelectorAll('[data-page-url]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const pageUrl = btn.dataset.pageUrl;
+          btn.disabled = true;
+          btn.textContent = 'Resolving…';
+          try {
+            const res = await window.electronAPI.downloadsFetchDownloadLink(pageUrl);
+            if (!res.ok || !res.url) {
+              btn.textContent = 'Unable to resolve';
+              return;
+            }
+            const saveDir = await getDownloadSaveDir();
+            const source = btn.dataset.source || 'unknown';
+            await window.electronAPI.downloadsAddHttp({ url: res.url, saveDir, source });
+            downloadItems = await window.electronAPI.downloadsGetAll();
+            renderDownloadsPage();
+            renderFolders();
+            btn.textContent = 'Added';
+          } catch (error) {
+            console.error('Download add failed:', error);
+            btn.textContent = 'Error';
+          }
+        });
+      });
+    } finally {
+      searchBtn.disabled = false;
+    }
+  }
+
+  if(downloadPopupBtn) downloadPopupBtn.addEventListener('click', () => showDirectDownloadPopup(true));
+  if(downloadPopupCloseBtn) downloadPopupCloseBtn.addEventListener('click', () => showDirectDownloadPopup(false));
+  if(downloadPopupAddBtn) downloadPopupAddBtn.addEventListener('click', submitDirectDownload);
+  if(downloadUrlPopupInput) downloadUrlPopupInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitDirectDownload(); });
+  if(searchBtn) searchBtn.addEventListener('click', searchGames);
+  if(searchInput) searchInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') searchGames(); });
+}
+
+// --- Saved sources (publisher/site pages you scan for download links) ---
 const ACCENT_PALETTE = ['#e21414','#e2660f','#d6a017','#1f9e52','#12968c','#1f6fe2','#7a3fe2','#e2317a'];
 
 let editingFolderId = null;
@@ -495,6 +762,8 @@ function loadData(){
   renderGamesFolder();
   render();
   detectBrokenPaths();
+  initDownloadsUI();
+  initDownloads().then(() => { renderFolders(); if(activeFolder === 'downloads') render(); });
 }
 
 function saveData(){
@@ -662,7 +931,19 @@ function renderFolders(){
   });
   folderList.appendChild(statsItem);
 
-  // Divider between the top-level nav (All/Stats) and the folders section.
+  const downloadsItem = document.createElement('li');
+  downloadsItem.className = 'folder-item downloads-nav-item' + (activeFolder === 'downloads' ? ' active' : '');
+  const activeDownloadCount = downloadItems.filter(d => d.status === 'downloading').length;
+  downloadsItem.innerHTML = `<span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Downloads</span><span class="right">${activeDownloadCount > 0 ? `<span class="count">${activeDownloadCount}</span>` : ''}</span>`;
+  downloadsItem.addEventListener('click', () => {
+    activeFolder = 'downloads';
+    currentPage = 1;
+    renderFolders();
+    render();
+  });
+  folderList.appendChild(downloadsItem);
+
+  // Divider between the top-level nav (All/Stats/Downloads) and the folders section.
   // Favorites always lives in the folders section, pinned first, so the
   // divider always shows even when the user has no custom folders yet.
   const divider = document.createElement('li');
@@ -890,6 +1171,7 @@ function render(){
   const toolbar = document.querySelector('.toolbar');
   const teeth = document.querySelector('.teeth');
   const statsPage = document.getElementById('statsPage');
+  const downloadsPage = document.getElementById('downloadsPage');
   const pagination = document.getElementById('pagination');
   const fab = document.getElementById('addBtn');
 
@@ -903,7 +1185,22 @@ function render(){
     pagination.style.display = 'none';
     if(fab) fab.style.display = 'none';
     statsPage.style.display = 'block';
+    if(downloadsPage) downloadsPage.style.display = 'none';
     renderStats();
+    return;
+  }
+  if(activeFolder === 'downloads'){
+    folderTitle.textContent = 'DOWNLOADS';
+    countLabel.textContent = 'HTTP and torrent downloads you\'ve added';
+    if(toolbar) toolbar.style.display = 'none';
+    if(teeth) teeth.style.display = 'none';
+    grid.style.display = 'none';
+    emptyState.style.display = 'none';
+    pagination.style.display = 'none';
+    if(fab) fab.style.display = 'none';
+    statsPage.style.display = 'none';
+    if(downloadsPage) downloadsPage.style.display = 'block';
+    renderDownloadsPage();
     return;
   }
   if(toolbar) toolbar.style.display = '';
@@ -911,6 +1208,7 @@ function render(){
   grid.style.display = '';
   if(fab) fab.style.display = '';
   statsPage.style.display = 'none';
+  if(downloadsPage) downloadsPage.style.display = 'none';
 
   const query = document.getElementById('search').value.toLowerCase();
   let list = games.filter(g => g.name.toLowerCase().includes(query));
@@ -2076,7 +2374,7 @@ document.addEventListener('keydown', (e) => {
   if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
     e.preventDefault();
     const searchInput = document.getElementById('search');
-    if(activeFolder === 'stats'){
+    if(activeFolder === 'stats' || activeFolder === 'downloads'){
       activeFolder = 'all';
       currentPage = 1;
       renderFolders();
@@ -2089,7 +2387,7 @@ document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape'){
     [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('settingsOverlay'), document.getElementById('pinOverlay')].forEach(o => o.classList.remove('show'));
     closeAllCompactMenus();
-    if(activeFolder === 'stats'){
+    if(activeFolder === 'stats' || activeFolder === 'downloads'){
       activeFolder = 'all';
       currentPage = 1;
       renderFolders();
@@ -2109,7 +2407,7 @@ document.addEventListener('keydown', (e) => {
   // Grid keyboard navigation — only when no modal is open and focus isn't in a text field.
   const anyModalOpen = [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('settingsOverlay'), document.getElementById('pinOverlay'), tutorialOverlay].some(o => o.classList.contains('show'));
   const typing = document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
-  if(anyModalOpen || typing || activeFolder === 'stats') return;
+  if(anyModalOpen || typing || activeFolder === 'stats' || activeFolder === 'downloads') return;
 
   const cards = Array.from(grid.querySelectorAll('.compact-card'));
   if(cards.length === 0) return;

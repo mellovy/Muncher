@@ -12,16 +12,18 @@
     "dist": "electron-builder --win"
   },
   "devDependencies": {
-    "electron": "^31.0.0",
-    "electron-builder": "^24.13.3"
+    "electron": "^37.0.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.mello.muncher",
     "productName": "Muncher",
     "asar": true,
-    "compression": "maximum",
+"compression": "maximum",
     "files": [
       "main.js",
+      "downloads.js",
+      "scraper.js",
       "preload.js",
       "launcher.html",
       "style.css",
@@ -44,9 +46,19 @@
     ]
   },
   "dependencies": {
-    "electron-updater": "^6.8.9"
+    "axios": "^1.7.0",
+    "cheerio": "^1.0.0-rc.14",
+    "electron-updater": "^6.8.9",
+    "extract-zip": "^2.0.1",
+    "webtorrent": "^2.5.15"
   },
   "allowScripts": {
-    "electron@31.7.7": true
+    "electron@37.10.3": true,
+    "electron-winstaller@5.4.0": true,
+    "utp-native@2.5.3": true,
+    "bufferutil@4.1.0": true,
+    "utf-8-validate@6.0.6": true,
+    "node-datachannel@0.32.3": true,
+    "ip-set@3.0.0": true
   }
 }
