@@ -2,6 +2,8 @@
 
 A lightweight Electron desktop launcher for organizing and launching your games.
 
+<img width="1369" height="834" alt="image" src="https://github.com/user-attachments/assets/0dbabac2-2dcb-4730-bf77-d2f985e4600c" />
+
 ## Features
 
 - Scan and add games from local folders or Steam
