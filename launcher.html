@@ -49,7 +49,12 @@
       <button class="refresh-btn" id="selectModeBtn" title="Select multiple games" aria-label="Select multiple">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12l3 3 5-6"/></svg>
       </button>
+      <button class="refresh-btn" id="randomPickBtn" title="What should I play?" aria-label="Pick a random game">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.25" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.25" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.25" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.25" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.25" fill="currentColor" stroke="none"/></svg>
+      </button>
     </div>
+
+    <div class="tag-filter-row" id="tagFilterRow" style="display:none;"></div>
 
     <div class="teeth"></div>
 
@@ -80,56 +85,55 @@
     </div>
 
     <div class="stats-page" id="statsPage" style="display:none;">
-      <div class="stats-note">Games whose folder or .exe can no longer be found are flagged with a ⚠ badge on their card.</div>
-      <div class="stats-grid" id="statsGrid"></div>
-      <div class="stats-columns">
+      <div class="stats-tabs" id="statsTabs">
+        <button class="stats-tab active" data-stats-tab="overview" type="button">Overview</button>
+        <button class="stats-tab" data-stats-tab="tools" type="button">Tools</button>
+      </div>
+
+      <div class="stats-tabpanel active" data-stats-panel="overview">
+        <div class="stats-note">Games whose folder or .exe can no longer be found are flagged with a ⚠ badge on their card.</div>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="stats-columns">
         <div class="stats-panel stats-panel-full">
-          <h3>Top played</h3>
-          <ul class="stats-list" id="statsTopList"></ul>
+          <h3>Playtime trend (last 8 weeks)</h3>
+          <div class="trend-chart" id="statsTrendChart"></div>
         </div>
-      </div>
-    </div>
-
-    <div class="downloads-page" id="downloadsPage" style="display:none;">
-      <div class="dl-stat-strip" id="dlStatStrip"></div>
-      <div class="teeth"></div>
-
-      <div class="downloads-top-block">
-        <div class="downloads-add-row downloads-main-row">
-          <svg class="dl-add-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <input type="text" id="searchQueryInput" placeholder="Search games to download...">
-          <button class="dl-icon-btn" id="downloadPopupBtn" type="button" title="Add direct URL / magnet"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-          <button class="dl-add-btn" id="searchBtn">Search</button>
-        </div>
-        <div class="downloads-popup" id="downloadPopup" style="display:none;">
-          <div class="downloads-popup-row">
-            <input type="text" id="downloadUrlPopupInput" placeholder="Paste a direct download URL or magnet link...">
-            <button class="dl-add-btn" id="downloadPopupAddBtn">Add</button>
-            <button class="dl-icon-btn" id="downloadPopupCloseBtn" type="button" title="Close">×</button>
+          <div class="stats-panel stats-panel-full">
+            <h3>Top played</h3>
+            <ul class="stats-list" id="statsTopList"></ul>
           </div>
-          <div class="downloads-popup-note">Direct downloads are secondary. Start with a search whenever possible.</div>
         </div>
       </div>
-      <div class="downloads-subrow">
-        <span class="downloads-note">Search for a game, or use + to add a direct download URL or magnet link.</span>
-      </div>
-      <div class="search-results" id="searchResults" style="display:none;"></div>
 
-      <div class="downloads-section-label">
-        <span>Queue</span>
+      <div class="stats-tabpanel" data-stats-panel="tools" id="toolsPage">
+        <div class="stats-note">Orphaned games point at a folder or .exe that no longer exists. Duplicates are games with matching names — check before removing.</div>
+        <div class="stats-columns">
+          <div class="stats-panel stats-panel-full">
+            <h3>Storage usage</h3>
+            <p class="stats-note" id="toolsStorageTotal" style="margin-bottom:10px;"></p>
+            <ul class="stats-list" id="toolsStorageList"></ul>
+          </div>
+          <div class="stats-panel stats-panel-full">
+            <h3>Orphaned games</h3>
+            <ul class="stats-list" id="toolsOrphanList"></ul>
+          </div>
+          <div class="stats-panel stats-panel-full">
+            <h3>Possible duplicates</h3>
+            <ul class="stats-list" id="toolsDupList"></ul>
+          </div>
+        </div>
       </div>
-      <div class="downloads-list" id="downloadsList"></div>
-      <div class="downloads-empty" id="downloadsEmpty" style="display:none;">
-        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <p>Nothing queued yet</p>
-        <span>Paste a link above or run a search to begin.</span>
-      </div>
-
     </div>
+
   </main>
 </div>
 
 <button class="fab" id="addBtn" title="Add game" aria-label="Add game">+</button>
+
+<div class="clip-recording-indicator" id="clipRecordingIndicator" style="display:none;" title="Save a clip (see Settings > Clips for your hotkey)">
+  <span class="clip-recording-dot"></span>
+  <span id="clipRecordingLabel">Instant replay buffering…</span>
+</div>
 
 <div class="toast" id="toast"><span class="toast-msg" id="toastMsg"></span><button class="toast-action" id="toastAction" style="display:none;"></button></div>
 
@@ -181,6 +185,11 @@
         <button class="browse-btn" id="browseExeBtn" type="button">Browse</button>
       </div>
       <div class="note">Got a Steam game? Paste <code>steam://rungameid/APPID</code> instead of an .exe path.</div>
+    </div>
+    <div class="field">
+      <label>Tags</label>
+      <input type="text" id="fTags" placeholder="e.g. Co-op, Roguelike, Short">
+      <div class="note">Comma-separated. Used for filtering your library.</div>
     </div>
     <div class="modal-actions">
       <button class="btn ghost" id="cancelBtn">Cancel</button>
@@ -249,55 +258,144 @@
   <div class="modal settings-modal">
     <h2>SETTINGS</h2>
 
-    <div class="settings-row">
-      <div class="field">
-        <label>Accent color</label>
-        <div class="accent-palette" id="accentPalette"></div>
-      </div>
-      <div class="field">
-        <label>Appearance</label>
-        <div class="theme-toggle">
-          <button class="theme-icon-btn" id="darkModeBtn" type="button" title="Dark mode" aria-label="Dark mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
-          <button class="theme-icon-btn" id="lightModeBtn" type="button" title="Light mode" aria-label="Light mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
-          </button>
+    <div class="settings-tabs" id="settingsTabs">
+      <button class="settings-tab active" data-tab="general" type="button">General</button>
+      <button class="settings-tab" data-tab="library" type="button">Library</button>
+      <button class="settings-tab" data-tab="clips" type="button">Clips</button>
+      <button class="settings-tab" data-tab="backup" type="button">Backup</button>
+      <button class="settings-tab" data-tab="about" type="button">About</button>
+    </div>
+
+    <div class="settings-panel active" data-panel="general">
+      <div class="settings-row">
+        <div class="field">
+          <label>Accent color</label>
+          <div class="accent-palette" id="accentPalette"></div>
+        </div>
+        <div class="field">
+          <label>Appearance</label>
+          <div class="theme-toggle">
+            <button class="theme-icon-btn" id="darkModeBtn" type="button" title="Dark mode" aria-label="Dark mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+            <button class="theme-icon-btn" id="lightModeBtn" type="button" title="Light mode" aria-label="Light mode">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="settings-row">
-      <div class="field">
-        <label>Games folder</label>
-        <div class="path-display empty" id="gamesFolderDisplay">Not set</div>
-        <button class="stack-btn" id="setGamesFolderBtn">Set games folder</button>
-        <button class="stack-btn" id="scanGamesBtn">Scan for new games</button>
-        <div class="note">Default Browse location, scanned for new games.</div>
+    <div class="settings-panel" data-panel="library">
+      <div class="settings-row">
+        <div class="field">
+          <label>Games folder</label>
+          <div class="path-display empty" id="gamesFolderDisplay">Not set</div>
+          <button class="stack-btn" id="setGamesFolderBtn">Set games folder</button>
+          <button class="stack-btn" id="scanGamesBtn">Scan for new games</button>
+          <div class="note">Default Browse location, scanned for new games.</div>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <div class="field">
+          <label>Steam library</label>
+          <button class="stack-btn" id="scanSteamBtn">Import Steam games</button>
+          <div class="note">Adds installed Steam games, with playtime.</div>
+        </div>
       </div>
     </div>
 
-    <div class="settings-row">
-      <div class="field">
-        <label>Steam library</label>
-        <button class="stack-btn" id="scanSteamBtn">Import Steam games</button>
-        <div class="note">Adds installed Steam games, with playtime.</div>
+    <div class="settings-panel" data-panel="clips">
+      <div class="settings-row">
+        <div class="field">
+          <div class="pin-checkbox-row">
+            <input type="checkbox" id="replayEnabledToggle">
+            <label for="replayEnabledToggle">Instant replay</label>
+          </div>
+          <div class="note">Buffers gameplay in the background while a game is running. Hit the hotkey and it saves what already happened — no need to start recording ahead of time.</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="field">
+          <div class="pin-checkbox-row">
+            <input type="checkbox" id="recordAudioToggle">
+            <label for="recordAudioToggle">Record audio</label>
+          </div>
+          <div class="note">Captures desktop/system audio along with video. Takes effect immediately if instant replay is already buffering.</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="field">
+          <label>Clip length</label>
+          <select id="replayLengthSelect">
+            <option value="15">Last 15 seconds</option>
+            <option value="30">Last 30 seconds</option>
+            <option value="60">Last 1 minute</option>
+            <option value="120">Last 2 minutes</option>
+            <option value="300">Last 5 minutes</option>
+          </select>
+          <div class="note">How far back the buffer reaches. Longer lengths use more memory while a game is running.</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="field">
+          <label>Clip hotkey</label>
+          <select id="clipHotkeySelect">
+            <option value="CommandOrControl+Alt+C">Ctrl+Alt+C</option>
+            <option value="CommandOrControl+Shift+C">Ctrl+Shift+C</option>
+            <option value="CommandOrControl+Shift+K">Ctrl+Shift+K</option>
+            <option value="CommandOrControl+Alt+X">Ctrl+Alt+X</option>
+            <option value="CommandOrControl+Shift+F9">Ctrl+Shift+F9</option>
+            <option value="F9">F9</option>
+          </select>
+          <div class="note">Detected directly from your keyboard, not through Windows' hotkey system — this works reliably even in fullscreen games where regular global hotkeys can get swallowed.</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="field">
+          <label>Save a clip now</label>
+          <button class="stack-btn" id="manualSaveClipBtn">Save clip</button>
+          <div class="note">Same as the clip hotkey above — use this if the hotkey is unreliable on your system, or you just don't want to rely on it.</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="field">
+          <label>Clip folder</label>
+          <div class="path-display empty" id="clipsDirDisplay">Not set</div>
+          <button class="stack-btn" id="setClipsDirBtn">Set clip folder</button>
+          <button class="stack-btn" id="resetClipsDirBtn">Reset to default</button>
+          <div class="note">Where saved clips are written, in a subfolder per game.</div>
+        </div>
       </div>
     </div>
 
-    <div class="settings-row">
-      <div class="field">
-        <label>Shortcuts</label>
-        <div class="note">Ctrl+F to search. Ctrl+Shift+M summons Muncher from anywhere, even minimized.</div>
-        <button class="stack-btn" id="replayTutorialBtn">Show tutorial again</button>
+    <div class="settings-panel" data-panel="backup">
+      <div class="settings-row">
+        <div class="field">
+          <label>Backup</label>
+          <button class="stack-btn" id="exportBackupBtn">Export library backup</button>
+          <button class="stack-btn" id="importBackupBtn">Import library backup</button>
+          <div class="note">Saves your games, folders, tags, and accent color to a JSON file — or restores from one.</div>
+        </div>
       </div>
     </div>
 
-    <div class="settings-row">
-      <div class="field">
-        <label>About</label>
-        <div class="note" id="versionLabel">Muncher</div>
-        <button class="stack-btn" id="checkUpdatesBtn">Check for updates</button>
+    <div class="settings-panel" data-panel="about">
+      <div class="settings-row">
+        <div class="field">
+          <label>Shortcuts</label>
+          <div class="note">Ctrl+F to search. Ctrl+Shift+M summons Muncher from anywhere, even minimized. Your clip hotkey (Settings > Clips) saves your instant replay clip.</div>
+          <button class="stack-btn" id="replayTutorialBtn">Show tutorial again</button>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <div class="field">
+          <label>About</label>
+          <div class="note" id="versionLabel">Muncher</div>
+          <button class="stack-btn" id="checkUpdatesBtn">Check for updates</button>
+        </div>
       </div>
     </div>
 
@@ -341,6 +439,20 @@
   </div>
 </div>
 
+<div class="overlay" id="randomOverlay">
+  <div class="modal confirm-modal">
+    <h2>WHAT SHOULD I PLAY?</h2>
+    <div class="random-pick-banner no-image" id="randomPickBanner"></div>
+    <p id="randomPickName" class="confirm-message" style="font-family:var(--font-display);font-size:18px;letter-spacing:1px;"></p>
+    <p id="randomPickSub" class="confirm-message" style="font-size:12px;"></p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="randomPickCloseBtn">Close</button>
+      <button class="btn ghost" id="randomPickRerollBtn">Reroll</button>
+      <button class="btn" id="randomPickLaunchBtn">Launch</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="updateOverlay">
   <div class="modal update-modal">
     <h2 id="updateTitle">UPDATE AVAILABLE</h2>
@@ -371,6 +483,7 @@
     </div>
     <div class="detail-body">
       <div class="detail-folder-tag" id="detailFolderTag" style="visibility:hidden">.</div>
+      <div class="detail-tags" id="detailTags" style="display:none;"></div>
       <div class="detail-playtime" id="detailPlaytime">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
         <span id="detailPlaytimeText">Not played yet</span>
@@ -395,6 +508,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
         </button>
       </div>
+      <details class="detail-notes-wrap">
+        <summary>Notes &amp; links</summary>
+        <textarea class="detail-notes-textarea" id="detailNotes" placeholder="Walkthrough links, save file location, troubleshooting notes…"></textarea>
+      </details>
       <div class="detail-sessions" id="detailSessions" style="display:none;">
         <div class="detail-sessions-title">Recent sessions</div>
         <ul id="detailSessionsList"></ul>
@@ -408,6 +525,8 @@ let games = [];
 let folders = [];
 let gamesFolder = '';
 let activeFolder = 'all';
+let statsTab = 'overview'; // sub-tab within the Library Stats page: 'overview' | 'tools'
+let clipsDir = ''; // persisted setting; empty = use the app's default clips folder
 let editingId = null;
 let theme = 'dark';
 let modalColor = null;
@@ -416,6 +535,7 @@ let modalHeaderCustom = false;
 let selectedCardIndex = -1;
 let selectMode = false;
 let selectedIds = new Set();
+let activeTagFilters = new Set();
 let modalFolderColor = '';
 const FOLDER_COLOR_PALETTE = ['', '#e21414','#e2660f','#d6a017','#1f9e52','#12968c','#1f6fe2','#7a3fe2','#e2317a'];
 
@@ -425,235 +545,6 @@ let currentPage = 1;
 const DEFAULT_ACCENT = '#e21414';
 let accentColor = DEFAULT_ACCENT;
 
-// --- Downloads panel state ---
-let downloadItems = [];
-let downloadsSaveDir = '';
-
-function formatBytes(n){
-  if(!n || n <= 0) return '0 B';
-  const units = ['B','KB','MB','GB','TB'];
-  let i = 0;
-  while(n >= 1024 && i < units.length - 1){ n /= 1024; i++; }
-  return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-}
-
-function formatSpeed(bps){
-  if(!bps || bps <= 0) return '';
-  return `${formatBytes(bps)}/s`;
-}
-
-async function initDownloads(){
-  try{
-    downloadItems = await window.electronAPI.downloadsGetAll();
-    downloadsSaveDir = await window.electronAPI.downloadsGetDefaultDir();
-  }catch(e){ downloadItems = []; }
-  window.electronAPI.onDownloadsUpdated((list) => {
-    downloadItems = list;
-    if(activeFolder === 'downloads') renderDownloadsPage();
-    renderFolders();
-  });
-  window.electronAPI.onDownloadProgress(({ id, ...patch }) => {
-    const it = downloadItems.find(d => d.id === id);
-    if(it) Object.assign(it, patch);
-    if(activeFolder === 'downloads') renderDownloadsPage();
-    if(patch.status === 'downloading' || patch.status === undefined) return;
-    renderFolders(); // status changes (paused/completed/error) affect the nav badge count
-  });
-}
-
-function renderDownloadsPage(){
-  const list = document.getElementById('downloadsList');
-  const empty = document.getElementById('downloadsEmpty');
-  const statStrip = document.getElementById('dlStatStrip');
-  if(!list) return;
-
-  if(statStrip){
-    const activeCount = downloadItems.filter(d => d.status === 'downloading').length;
-    const pausedCount = downloadItems.filter(d => d.status === 'paused').length;
-    const completedCount = downloadItems.filter(d => d.status === 'completed').length;
-    const totalSpeed = downloadItems.filter(d => d.status === 'downloading').reduce((sum, d) => sum + (d.speedBps || 0), 0);
-    statStrip.innerHTML = `
-      <div class="dl-stat-tile">
-        <span class="dl-stat-value">${activeCount}</span>
-        <span class="dl-stat-label">Active</span>
-      </div>
-      <div class="dl-stat-tile">
-        <span class="dl-stat-value">${formatSpeed(totalSpeed) || '0 B/s'}</span>
-        <span class="dl-stat-label">Combined speed</span>
-      </div>
-      <div class="dl-stat-tile">
-        <span class="dl-stat-value">${pausedCount}</span>
-        <span class="dl-stat-label">Paused</span>
-      </div>
-      <div class="dl-stat-tile">
-        <span class="dl-stat-value">${completedCount}</span>
-        <span class="dl-stat-label">Completed</span>
-      </div>`;
-  }
-
-  if(downloadItems.length === 0){
-    list.innerHTML = '';
-    empty.style.display = 'flex';
-    return;
-  }
-  empty.style.display = 'none';
-  list.innerHTML = downloadItems.map(d => {
-    const pct = d.totalBytes ? Math.min(100, Math.round((d.receivedBytes / d.totalBytes) * 100)) : 0;
-    const statusLabel = {
-      downloading: 'Downloading', paused: 'Paused', completed: 'Completed',
-      error: d.error || 'Error', cancelled: 'Cancelled'
-    }[d.status] || d.status;
-    const isTorrent = d.kind === 'torrent';
-    const kindIcon = isTorrent
-      ? '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3v4M12 17v4M21 12h-4M7 12H3"/></svg>'
-      : '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
-    const canPause = d.status === 'downloading';
-    const canResume = d.status === 'paused' || d.status === 'error';
-    const peers = (isTorrent && d.peers != null && d.status === 'downloading') ? ` · ${d.peers} peers` : '';
-    const showBar = ['downloading', 'paused', 'extracting'].includes(d.status);
-    return `
-      <div class="download-row dl-row-${d.status}" data-id="${d.id}">
-        <div class="dl-kind-icon dl-kind-${d.kind}">${kindIcon}</div>
-        <div class="dl-row-main">
-          <div class="download-row-top">
-            <span class="dl-name" title="${escapeHtml(d.name || '')}">${escapeHtml(d.name || 'download')}</span>
-            <span class="dl-status dl-status-${d.status}">${escapeHtml(String(statusLabel))}</span>
-          </div>
-          ${showBar ? `<div class="dl-progress-track"><div class="dl-progress-fill dl-progress-${d.status}" style="width:${Math.max(pct, d.status === 'downloading' && pct === 0 ? 3 : 0)}%"></div></div>` : ''}
-          <div class="download-row-bottom">
-            <span class="dl-meta">${formatBytes(d.receivedBytes)}${d.totalBytes ? ' / ' + formatBytes(d.totalBytes) : ''}${d.totalBytes ? ` · ${pct}%` : ''}${d.status === 'downloading' ? ' · ' + (formatSpeed(d.speedBps) || 'starting…') : ''}${peers}</span>
-            <span class="dl-actions">
-              ${canPause ? `<button class="dl-action-btn" data-action="pause" data-id="${d.id}" title="Pause"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>Pause</button>` : ''}
-              ${canResume ? `<button class="dl-action-btn" data-action="resume" data-id="${d.id}" title="Resume"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" stroke="none"><polygon points="6 3 20 12 6 21 6 3"/></svg>Resume</button>` : ''}
-              ${d.status === 'completed' ? `<button class="dl-action-btn" data-action="open" data-id="${d.id}">Open folder</button>` : ''}
-              <button class="dl-action-btn dl-action-danger" data-action="remove" data-id="${d.id}">${d.status === 'completed' ? 'Remove' : 'Cancel'}</button>
-            </span>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-
-  list.querySelectorAll('.dl-action-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = btn.dataset.id;
-      const action = btn.dataset.action;
-      const it = downloadItems.find(d => d.id === id);
-      if(action === 'pause') await window.electronAPI.downloadsPause(id);
-      else if(action === 'resume') await window.electronAPI.downloadsResume(id);
-      else if(action === 'remove') await window.electronAPI.downloadsRemove(id);
-      else if(action === 'open' && it) await window.electronAPI.openFolder(it.destPath);
-    });
-  });
-}
-
-function initDownloadsUI(){
-  const downloadPopupBtn = document.getElementById('downloadPopupBtn');
-  const downloadPopup = document.getElementById('downloadPopup');
-  const downloadUrlPopupInput = document.getElementById('downloadUrlPopupInput');
-  const downloadPopupAddBtn = document.getElementById('downloadPopupAddBtn');
-  const downloadPopupCloseBtn = document.getElementById('downloadPopupCloseBtn');
-
-  async function getDownloadSaveDir(){
-    return gamesFolder || downloadsSaveDir;
-  }
-
-  function showDirectDownloadPopup(show){
-    if(!downloadPopup) return;
-    downloadPopup.style.display = show ? 'block' : 'none';
-    if(show && downloadUrlPopupInput){
-      downloadUrlPopupInput.focus();
-    }
-  }
-
-  async function submitDirectDownload(){
-    const value = downloadUrlPopupInput?.value.trim();
-    if(!value) return;
-    downloadUrlPopupInput.value = '';
-    showDirectDownloadPopup(false);
-    const saveDir = await getDownloadSaveDir();
-    if(value.startsWith('magnet:')){
-      await window.electronAPI.downloadsAddTorrent({ magnetOrUrl: value, saveDir });
-    }else{
-      await window.electronAPI.downloadsAddHttp({ url: value, saveDir });
-    }
-    downloadItems = await window.electronAPI.downloadsGetAll();
-    renderDownloadsPage();
-    renderFolders();
-  }
-
-  const searchInput = document.getElementById('searchQueryInput');
-  const searchBtn = document.getElementById('searchBtn');
-  const searchResults = document.getElementById('searchResults');
-
-  async function searchGames(){
-    const query = searchInput?.value.trim();
-    if(!query) return;
-    searchBtn.disabled = true;
-    searchResults.style.display = 'block';
-    searchResults.innerHTML = `<div class="scan-status">Searching for ${escapeHtml(query)}…</div>`;
-    try {
-      const res = await window.electronAPI.downloadsSearchSources(query);
-      if(!res.ok){
-        searchResults.innerHTML = `<div class="scan-status scan-error">${escapeHtml(res.error || 'Search failed')}</div>`;
-        return;
-      }
-      if(!res.results || res.results.length === 0){
-        searchResults.innerHTML = `<div class="scan-status">No results found for ${escapeHtml(query)}.</div>`;
-        return;
-      }
-      searchResults.innerHTML = res.results.map((item, index) => `
-        <div class="scan-link-row">
-          <div class="search-entry">
-${(item.header || item.cover) ? `<img class="search-thumb" src="${escapeHtml(item.header || item.cover)}" alt="${escapeHtml(item.title)}">` : ''}
-            <div class="search-entry-copy">
-              <span class="scan-link-label">${escapeHtml(item.title)}</span>
-              <span class="search-entry-subrow">
-                <span class="search-source-tag">${escapeHtml(item.source || 'Unknown')}</span>
-                ${item.fileSize ? `<span class="search-file-size">${escapeHtml(item.fileSize)}</span>` : ''}
-              </span>
-            </div>
-          </div>
-          <button class="dl-action-btn" data-page-url="${escapeHtml(item.pageUrl)}" data-source="${escapeHtml(item.source || 'unknown')}">Add download</button>
-        </div>
-      `).join('');
-      searchResults.querySelectorAll('[data-page-url]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const pageUrl = btn.dataset.pageUrl;
-          btn.disabled = true;
-          btn.textContent = 'Resolving…';
-          try {
-            const res = await window.electronAPI.downloadsFetchDownloadLink(pageUrl);
-            if (!res.ok || !res.url) {
-              btn.textContent = 'Unable to resolve';
-              return;
-            }
-            const saveDir = await getDownloadSaveDir();
-            const source = btn.dataset.source || 'unknown';
-            await window.electronAPI.downloadsAddHttp({ url: res.url, saveDir, source });
-            downloadItems = await window.electronAPI.downloadsGetAll();
-            renderDownloadsPage();
-            renderFolders();
-            btn.textContent = 'Added';
-          } catch (error) {
-            console.error('Download add failed:', error);
-            btn.textContent = 'Error';
-          }
-        });
-      });
-    } finally {
-      searchBtn.disabled = false;
-    }
-  }
-
-  if(downloadPopupBtn) downloadPopupBtn.addEventListener('click', () => showDirectDownloadPopup(true));
-  if(downloadPopupCloseBtn) downloadPopupCloseBtn.addEventListener('click', () => showDirectDownloadPopup(false));
-  if(downloadPopupAddBtn) downloadPopupAddBtn.addEventListener('click', submitDirectDownload);
-  if(downloadUrlPopupInput) downloadUrlPopupInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitDirectDownload(); });
-  if(searchBtn) searchBtn.addEventListener('click', searchGames);
-  if(searchInput) searchInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') searchGames(); });
-}
-
-// --- Saved sources (publisher/site pages you scan for download links) ---
 const ACCENT_PALETTE = ['#e21414','#e2660f','#d6a017','#1f9e52','#12968c','#1f6fe2','#7a3fe2','#e2317a'];
 
 let editingFolderId = null;
@@ -763,6 +654,11 @@ function loadData(){
     sortBy = data?.sortBy || 'name-asc';
     perPage = data?.perPage || 24;
     accentColor = data?.accentColor || DEFAULT_ACCENT;
+    replayEnabled = data?.replayEnabled || false;
+    replayClipSeconds = data?.replayClipSeconds || 30;
+    clipsDir = data?.clipsDir || '';
+    recordClipAudio = data?.recordClipAudio || false;
+    clipHotkeyAccelerator = data?.clipHotkeyAccelerator || 'CommandOrControl+Alt+C';
   }catch(e){
     games = [];
     folders = [];
@@ -771,6 +667,11 @@ function loadData(){
     sortBy = 'name-asc';
     perPage = 24;
     accentColor = DEFAULT_ACCENT;
+    replayEnabled = false;
+    replayClipSeconds = 30;
+    clipsDir = '';
+    recordClipAudio = false;
+    clipHotkeyAccelerator = 'CommandOrControl+Alt+C';
   }
   applyTheme();
   grid.classList.add('compact');
@@ -780,17 +681,27 @@ function loadData(){
   if(sortSelect) sortSelect.value = sortBy;
   const perPageSelect = document.getElementById('perPageSelect');
   if(perPageSelect) perPageSelect.value = String(perPage);
+  const replayEnabledToggle = document.getElementById('replayEnabledToggle');
+  if(replayEnabledToggle) replayEnabledToggle.checked = replayEnabled;
+  const recordAudioToggle = document.getElementById('recordAudioToggle');
+  if(recordAudioToggle) recordAudioToggle.checked = recordClipAudio;
+  const replayLengthSelect = document.getElementById('replayLengthSelect');
+  if(replayLengthSelect) replayLengthSelect.value = String(replayClipSeconds);
+  const clipHotkeySelect = document.getElementById('clipHotkeySelect');
+  if(clipHotkeySelect) clipHotkeySelect.value = clipHotkeyAccelerator;
+  if(window.electronAPI && window.electronAPI.setClipHotkey){
+    window.electronAPI.setClipHotkey(clipHotkeyAccelerator);
+  }
+  renderClipsDir();
   renderFolders();
   renderGamesFolder();
   render();
   detectBrokenPaths();
-  initDownloadsUI();
-  initDownloads().then(() => { renderFolders(); if(activeFolder === 'downloads') render(); });
 }
 
 function saveData(){
   try{
-    localStorage.setItem('launcher-data', JSON.stringify({ games, folders, gamesFolder, theme, sortBy, perPage, accentColor }));
+    localStorage.setItem('launcher-data', JSON.stringify({ games, folders, gamesFolder, theme, sortBy, perPage, accentColor, replayEnabled, replayClipSeconds, clipsDir, recordClipAudio, clipHotkeyAccelerator }));
   }catch(e){
     showToast('COULD NOT SAVE');
   }
@@ -858,6 +769,43 @@ function renderGamesFolder(){
     display.classList.add('empty');
   }
 }
+
+function renderClipsDir(){
+  const display = document.getElementById('clipsDirDisplay');
+  if(!display) return;
+  if(clipsDir){
+    display.textContent = clipsDir;
+    display.classList.remove('empty');
+  }else{
+    display.textContent = 'Default (app data folder)';
+    display.classList.add('empty');
+  }
+}
+
+document.getElementById('setClipsDirBtn').addEventListener('click', async () => {
+  if(!window.electronAPI){
+    showToast('THIS ONLY WORKS IN THE APP');
+    return;
+  }
+  const picked = await window.electronAPI.pickFolder(clipsDir || undefined);
+  if(picked){
+    clipsDir = picked;
+    saveData();
+    renderClipsDir();
+    showToast('CLIP FOLDER SET');
+  }
+});
+
+document.getElementById('resetClipsDirBtn').addEventListener('click', () => {
+  if(!clipsDir){
+    showToast('ALREADY USING THE DEFAULT FOLDER');
+    return;
+  }
+  clipsDir = '';
+  saveData();
+  renderClipsDir();
+  showToast('CLIP FOLDER RESET TO DEFAULT');
+});
 
 function normalizeGameName(name){
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -946,26 +894,17 @@ function renderFolders(){
   statsItem.className = 'folder-item stats-nav-item' + (activeFolder === 'stats' ? ' active' : '');
   statsItem.innerHTML = `<span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12.5" y="8" width="3" height="10"/><rect x="18" y="5" width="3" height="13"/></svg>Library Stats</span>`;
   statsItem.addEventListener('click', () => {
+    if(activeFolder !== 'stats') statsTab = 'overview';
     activeFolder = 'stats';
     currentPage = 1;
     renderFolders();
+    document.querySelectorAll('.stats-tab').forEach(t => t.classList.toggle('active', t.dataset.statsTab === statsTab));
+    document.querySelectorAll('.stats-tabpanel').forEach(p => p.classList.toggle('active', p.dataset.statsPanel === statsTab));
     render();
   });
   folderList.appendChild(statsItem);
 
-  const downloadsItem = document.createElement('li');
-  downloadsItem.className = 'folder-item downloads-nav-item' + (activeFolder === 'downloads' ? ' active' : '');
-  const activeDownloadCount = downloadItems.filter(d => d.status === 'downloading').length;
-  downloadsItem.innerHTML = `<span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Downloads</span><span class="right">${activeDownloadCount > 0 ? `<span class="count">${activeDownloadCount}</span>` : ''}</span>`;
-  downloadsItem.addEventListener('click', () => {
-    activeFolder = 'downloads';
-    currentPage = 1;
-    renderFolders();
-    render();
-  });
-  folderList.appendChild(downloadsItem);
-
-  // Divider between the top-level nav (All/Stats/Downloads) and the folders section.
+  // Divider between the top-level nav (All/Stats) and the folders section.
   // Favorites always lives in the folders section, pinned first, so the
   // divider always shows even when the user has no custom folders yet.
   const divider = document.createElement('li');
@@ -1189,17 +1128,47 @@ function reorderGames(sourceId, targetId){
   render();
 }
 
+function getAllTags(){
+  const set = new Set();
+  games.forEach(g => (g.tags || []).forEach(t => set.add(t)));
+  return [...set].sort((a,b) => a.localeCompare(b));
+}
+
+function renderTagFilterRow(){
+  const row = document.getElementById('tagFilterRow');
+  const allTags = getAllTags();
+  if(allTags.length === 0){
+    row.style.display = 'none';
+    row.innerHTML = '';
+    return;
+  }
+  row.style.display = 'flex';
+  row.innerHTML = allTags.map(t => `<button class="tag-chip${activeTagFilters.has(t) ? ' active' : ''}" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')
+    + (activeTagFilters.size > 0 ? `<button class="tag-chip tag-chip-clear" id="clearTagFiltersBtn">Clear</button>` : '');
+  row.querySelectorAll('[data-tag]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tag = btn.dataset.tag;
+      if(activeTagFilters.has(tag)) activeTagFilters.delete(tag);
+      else activeTagFilters.add(tag);
+      currentPage = 1;
+      render();
+    });
+  });
+  const clearBtn = document.getElementById('clearTagFiltersBtn');
+  if(clearBtn) clearBtn.addEventListener('click', () => { activeTagFilters.clear(); currentPage = 1; render(); });
+}
+
 function render(){
   const toolbar = document.querySelector('.toolbar');
   const teeth = document.querySelector('.teeth');
   const statsPage = document.getElementById('statsPage');
-  const downloadsPage = document.getElementById('downloadsPage');
+  const toolsPage = document.getElementById('toolsPage');
   const pagination = document.getElementById('pagination');
   const fab = document.getElementById('addBtn');
 
   if(activeFolder === 'stats'){
-    folderTitle.textContent = 'LIBRARY STATS';
-    countLabel.textContent = 'An overview of your library and play habits';
+    folderTitle.textContent = statsTab === 'tools' ? 'LIBRARY TOOLS' : 'LIBRARY STATS';
+    countLabel.textContent = statsTab === 'tools' ? 'Clean up disk usage, orphaned games, and duplicates' : 'An overview of your library and play habits';
     if(toolbar) toolbar.style.display = 'none';
     if(teeth) teeth.style.display = 'none';
     grid.style.display = 'none';
@@ -1207,22 +1176,11 @@ function render(){
     pagination.style.display = 'none';
     if(fab) fab.style.display = 'none';
     statsPage.style.display = 'block';
-    if(downloadsPage) downloadsPage.style.display = 'none';
-    renderStats();
-    return;
-  }
-  if(activeFolder === 'downloads'){
-    folderTitle.textContent = 'DOWNLOADS';
-    countLabel.textContent = 'HTTP and torrent downloads you\'ve added';
-    if(toolbar) toolbar.style.display = 'none';
-    if(teeth) teeth.style.display = 'none';
-    grid.style.display = 'none';
-    emptyState.style.display = 'none';
-    pagination.style.display = 'none';
-    if(fab) fab.style.display = 'none';
-    statsPage.style.display = 'none';
-    if(downloadsPage) downloadsPage.style.display = 'block';
-    renderDownloadsPage();
+    if(statsTab === 'tools'){
+      renderTools();
+    }else{
+      renderStats();
+    }
     return;
   }
   if(toolbar) toolbar.style.display = '';
@@ -1230,7 +1188,6 @@ function render(){
   grid.style.display = '';
   if(fab) fab.style.display = '';
   statsPage.style.display = 'none';
-  if(downloadsPage) downloadsPage.style.display = 'none';
 
   const query = document.getElementById('search').value.toLowerCase();
   let list = games.filter(g => g.name.toLowerCase().includes(query));
@@ -1241,10 +1198,17 @@ function render(){
   }
   // Never surface games from a PIN-locked folder that hasn't been unlocked this session
   list = list.filter(g => isFolderVisible(g.folder));
+  if(activeTagFilters.size > 0){
+    list = list.filter(g => (g.tags || []).some(t => activeTagFilters.has(t)));
+  }
   list = sortGames(list);
 
+  renderTagFilterRow();
+
   const activeFolderObj = folders.find(f => f.id === activeFolder);
-  folderTitle.textContent = activeFolder === 'all' ? 'GAME LIBRARY' : activeFolder === 'favorites' ? 'FAVORITES' : activeFolderObj?.name.toUpperCase() || 'GAME LIBRARY';
+  folderTitle.textContent = activeFolder === 'all' ? 'GAME LIBRARY'
+    : activeFolder === 'favorites' ? 'FAVORITES'
+    : activeFolderObj?.name.toUpperCase() || 'GAME LIBRARY';
   const totalInView = activeFolder === 'all'
     ? games.filter(g => isFolderVisible(g.folder)).length
     : activeFolder === 'favorites'
@@ -1340,6 +1304,8 @@ function buildCompactCard(g){
   card.className = 'compact-card' + (g.favorite ? ' is-favorite' : '') + (selectMode && selectedIds.has(g.id) ? ' selected' : '');
   card.draggable = true;
   card.dataset.id = g.id;
+  const lastPlayedTip = formatLastPlayed(g.lastPlayed);
+  card.title = lastPlayedTip ? `${g.name}\n${lastPlayedTip.replace('• ', '')} · ${formatPlaytime(g.playtime || 0)} played` : `${g.name}\nNot played yet`;
   const color = defaultGameColor();
   card.style.setProperty('--card-color', color);
   card.innerHTML = `
@@ -1503,6 +1469,7 @@ async function launchGame(game){
     const result = await window.electronAPI.launchGame(game.path);
     if(result.ok){
       showToast('LAUNCHING ' + game.name.toUpperCase());
+      currentlyPlayingId = game.id;
     }else{
       showToast(result.reason || 'COULD NOT LAUNCH GAME');
     }
@@ -1523,6 +1490,7 @@ function openEditModal(game){
   document.getElementById('modalTitle').textContent = 'EDIT GAME';
   document.getElementById('fName').value = game.name;
   document.getElementById('fPath').value = game.path || '';
+  document.getElementById('fTags').value = (game.tags || []).join(', ');
   modalColor = defaultGameColor();
   modalHeader = game.header || null;
   modalHeaderCustom = !!game.headerCustom;
@@ -1722,6 +1690,7 @@ document.addEventListener('click', (e) => {
 });
 
 let currentDetailId = null;
+let detailNotesSaveTimer = null;
 
 function openDetail(id){
   const game = games.find(g => g.id === id);
@@ -1753,9 +1722,18 @@ function openDetail(id){
   }
 
   document.getElementById('detailPlaytimeText').textContent = formatPlaytime(game.playtime || 0);
+  const detailTagsEl = document.getElementById('detailTags');
+  if(game.tags && game.tags.length){
+    detailTagsEl.innerHTML = game.tags.map(t => `<span class="detail-tag-chip">${escapeHtml(t)}</span>`).join('');
+    detailTagsEl.style.display = 'flex';
+  }else{
+    detailTagsEl.innerHTML = '';
+    detailTagsEl.style.display = 'none';
+  }
   document.getElementById('detailLastPlayedText').textContent = formatLastPlayed(game.lastPlayed);
   updateDetailFavoriteBtn(game);
   document.getElementById('detailBrokenWarning').style.display = game.pathMissing ? 'block' : 'none';
+  document.getElementById('detailNotes').value = game.notes || '';
   document.getElementById('detailSessions').style.display = 'none';
   renderSessionHistory(game);
 
@@ -1816,8 +1794,423 @@ async function fetchBanner(game){
   }catch(e){}
 }
 
+// ---- Instant replay (Medal-style rolling buffer) ----
+// Continuously records in the background while a game is running, keeping
+// only enough of a rolling buffer to cover the configured clip length.
+// Hitting the hotkey (Ctrl/Cmd+Shift+C) saves whatever's already buffered —
+// nothing needs to be started ahead of time.
+//
+// Video runs entirely in the main process via ffmpeg's gdigrab (see main.js)
+// rather than through getUserMedia/MediaRecorder here in the renderer. The
+// old approach captured through Chromium's desktopCapturer, which uses
+// Windows Graphics Capture (WGC) under the hood — WGC is prone to crashing
+// mid-session on some GPU/driver combos, and running a software VP9 encode
+// in the renderer on top of that competed with the UI thread for CPU.
+// Moving capture+encode to a separate ffmpeg process avoids both problems,
+// but gdigrab itself has no system-audio loopback without an extra virtual
+// audio driver. So audio (when the "Record audio" setting is on) runs as
+// its own lightweight capture right here in the renderer instead — a
+// desktop-loopback getUserMedia stream (this doesn't go through WGC, so it
+// doesn't carry WGC's crash risk) feeding a segmented MediaRecorder — kept
+// in its own rolling buffer and muxed with the video in main.js when a clip
+// is saved. See startAudioCapture below.
+const REPLAY_SEGMENT_SECONDS = 5; // must match REPLAY_SEGMENT_SECONDS in main.js
+let replayEnabled = false;   // persisted setting
+let recordClipAudio = false; // persisted setting — see startAudioCapture below for how this is honored
+let replayClipSeconds = 30;  // persisted setting
+let clipHotkeyAccelerator = 'CommandOrControl+Alt+C'; // persisted setting
+let replayActive = false;
+let replayGameName = null;
+let currentlyPlayingId = null;
+
+// ---- Instant replay audio ----
+// gdigrab (main.js) has no system-audio loopback of its own, so audio runs
+// as a second, independent capture right here in the renderer: a
+// desktop-loopback getUserMedia stream feeding a MediaRecorder, restarted
+// every REPLAY_SEGMENT_SECONDS so we end up with the same kind of rolling
+// buffer of small segments that the video side keeps, just audio-only
+// (opus/webm) and far cheaper to hold in memory. On save, the last few
+// segments get handed to main.js alongside the video ones and muxed
+// together there (see save-instant-replay-clip).
+let audioStream = null;
+let audioRecorder = null;
+let audioSegmentTimer = null;
+let audioSegments = []; // { blob, ts }, oldest first
+let audioCaptureFailed = false;
+
+async function startAudioCapture(){
+  if(!recordClipAudio || audioStream) return;
+  audioCaptureFailed = false;
+  try{
+    const sources = await window.electronAPI.getCaptureSources();
+    if(!sources || !sources.length) throw new Error('No capture source available');
+    // Electron's desktop-loopback audio constraint still requires a paired
+    // video track referencing a source id — ask for a throwaway 1x1 video
+    // track alongside it, then immediately drop it and keep only audio.
+    const rawStream = await navigator.mediaDevices.getUserMedia({
+      audio: { mandatory: { chromeMediaSource: 'desktop' } },
+      video: {
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: sources[0].id,
+          maxWidth: 2, maxHeight: 2, maxFrameRate: 1
+        }
+      }
+    });
+    rawStream.getVideoTracks().forEach(t => t.stop());
+    const audioTracks = rawStream.getAudioTracks();
+    if(!audioTracks.length) throw new Error('No system audio track');
+    audioStream = new MediaStream(audioTracks);
+
+    audioSegments = [];
+    startAudioRecorderSegment();
+    const keepSeconds = Math.max(60, replayClipSeconds * 4);
+    const keepCount = Math.ceil(keepSeconds / REPLAY_SEGMENT_SECONDS) + 2;
+    clearInterval(audioSegmentTimer);
+    audioSegmentTimer = setInterval(() => {
+      restartAudioRecorderSegment();
+      if(audioSegments.length > keepCount) audioSegments.splice(0, audioSegments.length - keepCount);
+    }, REPLAY_SEGMENT_SECONDS * 1000);
+  }catch(e){
+    audioCaptureFailed = true;
+    stopAudioCapture();
+  }
+}
+
+function startAudioRecorderSegment(){
+  if(!audioStream) return;
+  try{
+    audioRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
+  }catch(e){
+    audioCaptureFailed = true;
+    return;
+  }
+  // startTs is what actually matters for sync — it's the real wall-clock
+  // moment this segment's audio begins. ts (end time) alone can't tell
+  // main.js how far off this segment is from a video segment's start.
+  const startTs = Date.now();
+  const chunks = [];
+  audioRecorder.ondataavailable = (e) => { if(e.data && e.data.size) chunks.push(e.data); };
+  audioRecorder.onstop = () => {
+    if(chunks.length) audioSegments.push({ blob: new Blob(chunks, { type: 'audio/webm' }), startTs, ts: Date.now() });
+  };
+  audioRecorder.start();
+}
+
+function restartAudioRecorderSegment(){
+  if(!audioRecorder) return;
+  const rec = audioRecorder;
+  if(rec.state !== 'inactive') rec.stop();
+  startAudioRecorderSegment();
+}
+
+function stopAudioCapture(){
+  clearInterval(audioSegmentTimer);
+  audioSegmentTimer = null;
+  if(audioRecorder){
+    try{ if(audioRecorder.state !== 'inactive') audioRecorder.stop(); }catch(e){}
+    audioRecorder = null;
+  }
+  if(audioStream){
+    try{ audioStream.getTracks().forEach(t => t.stop()); }catch(e){}
+    audioStream = null;
+  }
+  audioSegments = [];
+}
+
+// Grabs the trailing ~seconds worth of buffered audio as ArrayBuffers, in
+// order, ready to send over IPC. Mirrors the "skip the newest, still-being-
+// written segment" caution main.js applies to the video buffer, since the
+// in-flight recorder segment isn't in audioSegments yet anyway.
+async function collectAudioBuffersForClip(seconds){
+  if(!recordClipAudio || audioCaptureFailed || !audioSegments.length) return [];
+  const needed = Math.max(1, Math.ceil((seconds || 30) / REPLAY_SEGMENT_SECONDS) + 1);
+  const chosen = audioSegments.slice(-needed);
+  // startTs travels with each buffer so main.js can line this segment up
+  // against the video segment it actually overlaps with, instead of just
+  // concatenating N-of-each and hoping -shortest covers the gap.
+  return Promise.all(chosen.map(async seg => ({
+    buffer: await seg.blob.arrayBuffer(),
+    startTs: seg.startTs
+  })));
+}
+
+function isReplayActive(){
+  return replayActive;
+}
+
+function updateClipIndicator(){
+  const el = document.getElementById('clipRecordingIndicator');
+  const label = document.getElementById('clipRecordingLabel');
+  if(isReplayActive()){
+    label.textContent = `Instant replay: last ${formatClipLength(replayClipSeconds)}`;
+    el.style.display = 'flex';
+  }else{
+    el.style.display = 'none';
+  }
+}
+
+function formatClipLength(seconds){
+  return seconds >= 60 ? `${Math.round(seconds / 60)} min` : `${seconds}s`;
+}
+
+async function startInstantReplay(game){
+  if(isReplayActive() || !replayEnabled) return;
+  if(!window.electronAPI || !window.electronAPI.startInstantReplayCapture) return;
+  let res;
+  try{
+    res = await window.electronAPI.startInstantReplayCapture(replayClipSeconds, game.path);
+  }catch(e){
+    res = { ok: false, error: e.message || String(e) };
+  }
+  if(!res || !res.ok){
+    clipToast(`INSTANT REPLAY FAILED TO START: ${res?.error || 'unknown error'}`, {
+      overlayTitle: 'Instant replay failed',
+      overlaySubtitle: res?.error,
+      overlayType: 'warn'
+    });
+    return;
+  }
+  replayActive = true;
+  replayGameName = game.name;
+  updateClipIndicator();
+  if(recordClipAudio) startAudioCapture();
+}
+
+async function stopInstantReplay(){
+  replayActive = false;
+  replayGameName = null;
+  updateClipIndicator();
+  stopAudioCapture();
+  if(window.electronAPI && window.electronAPI.stopInstantReplayCapture){
+    try{ await window.electronAPI.stopInstantReplayCapture(); }catch(e){}
+  }
+}
+
+async function saveInstantReplayClip(){
+  if(!window.electronAPI || !window.electronAPI.saveInstantReplayClip){
+    clipToast('CLIPS ONLY WORK IN THE APP');
+    return;
+  }
+  if(!replayEnabled){
+    clipToast('TURN ON INSTANT REPLAY IN SETTINGS FIRST');
+    return;
+  }
+  if(!isReplayActive()){
+    clipToast('NOTHING BUFFERED YET — LAUNCH A GAME AND WAIT A FEW SECONDS');
+    return;
+  }
+  const gameName = replayGameName || 'clip';
+  clipToast('SAVING CLIP…', { overlayTitle: 'Saving clip…', overlayType: 'record' });
+  let res;
+  try{
+    const audioBuffers = await collectAudioBuffersForClip(replayClipSeconds);
+    res = await window.electronAPI.saveInstantReplayClip(gameName, clipsDir, replayClipSeconds, audioBuffers);
+  }catch(e){
+    res = { ok: false, error: e.message || String(e) };
+  }
+  if(res && res.ok){
+    clipToast(`LAST ${formatClipLength(replayClipSeconds).toUpperCase()} SAVED`, {
+      actionLabel: 'Open folder',
+      onAction: () => window.electronAPI.openClipsFolder(gameName, clipsDir),
+      overlayTitle: 'Clip saved',
+      overlaySubtitle: `Last ${formatClipLength(replayClipSeconds)} of ${gameName}`,
+      overlayType: 'clip'
+    });
+  }else{
+    clipToast(`COULD NOT SAVE CLIP: ${res?.error || 'unknown error'}`, {
+      overlayTitle: 'Clip failed to save',
+      overlaySubtitle: res?.error || 'Unknown error',
+      overlayType: 'warn'
+    });
+  }
+}
+
+// Clip/replay toasts fire while a game is very likely in focus and covering
+// the launcher window, so — on top of the normal in-app toast — mirror them
+// to the game-bar-style overlay (a separate always-on-top window) so they're
+// actually visible over the game, the same way Xbox Game Bar's toasts work.
+function clipToast(msg, opts){
+  showToast(msg, opts);
+  if(window.electronAPI && window.electronAPI.showOverlayToast){
+    window.electronAPI.showOverlayToast({
+      title: (opts && opts.overlayTitle) || msg,
+      subtitle: opts && opts.overlaySubtitle,
+      duration: opts && opts.duration,
+      type: (opts && opts.overlayType) || 'clip',
+      accent: accentColor
+    });
+  }
+}
+
+function toggleClipRecording(){
+  // Bound to the same Ctrl+Shift+C shortcut as before, but now it's a single
+  // instant action instead of a start/stop toggle.
+  if(isReplayActive()){
+    saveInstantReplayClip();
+    return;
+  }
+  // Not buffering yet (e.g. a Steam game launched outside Muncher's process
+  // tracking) — start on demand for whatever game the detail view has open.
+  const targetId = currentlyPlayingId || currentDetailId;
+  const game = games.find(g => g.id === targetId);
+  if(!game){
+    clipToast('LAUNCH A GAME FIRST, THEN CTRL+SHIFT+C TO CLIP IT');
+    return;
+  }
+  if(!replayEnabled){
+    clipToast('TURN ON INSTANT REPLAY IN SETTINGS FIRST');
+    return;
+  }
+  clipToast('BUFFERING STARTED — GIVE IT A FEW SECONDS THEN TRY AGAIN');
+  startInstantReplay(game);
+}
+
+if(window.electronAPI && window.electronAPI.onToggleClipRecording){
+  window.electronAPI.onToggleClipRecording(() => toggleClipRecording());
+}
+
+if(window.electronAPI && window.electronAPI.onClipHotkeyUnavailable){
+  window.electronAPI.onClipHotkeyUnavailable(() => {
+    showToast('YOUR CLIP HOTKEY IS TAKEN BY ANOTHER APP — USE THE SAVE CLIP BUTTON IN SETTINGS > CLIPS, OR PICK A DIFFERENT HOTKEY THERE', { duration: 6000 });
+  });
+}
+
+document.getElementById('manualSaveClipBtn').addEventListener('click', () => toggleClipRecording());
+
+document.getElementById('replayEnabledToggle').addEventListener('change', (e) => {
+  replayEnabled = e.target.checked;
+  saveData();
+  if(!replayEnabled){
+    stopInstantReplay();
+  }else if(currentlyPlayingId){
+    const game = games.find(g => g.id === currentlyPlayingId);
+    if(game) startInstantReplay(game);
+  }
+});
+
+document.getElementById('recordAudioToggle').addEventListener('change', (e) => {
+  recordClipAudio = e.target.checked;
+  saveData();
+  if(isReplayActive()){
+    if(recordClipAudio) startAudioCapture();
+    else stopAudioCapture();
+  }
+});
+
+document.getElementById('replayLengthSelect').addEventListener('change', (e) => {
+  replayClipSeconds = parseInt(e.target.value, 10) || 30;
+  saveData();
+  updateClipIndicator();
+});
+
+document.getElementById('clipHotkeySelect').addEventListener('change', async (e) => {
+  const accelerator = e.target.value;
+  if(!window.electronAPI || !window.electronAPI.setClipHotkey) return;
+  const res = await window.electronAPI.setClipHotkey(accelerator);
+  if(res && res.ok){
+    clipHotkeyAccelerator = accelerator;
+    saveData();
+    showToast(`CLIP HOTKEY SET TO ${accelerator.replace('CommandOrControl', 'CTRL').toUpperCase()}`);
+  }else{
+    // Revert the dropdown — that combo is already taken system-wide.
+    e.target.value = clipHotkeyAccelerator;
+    showToast('COULD NOT START LISTENING FOR THAT HOTKEY — TRY A DIFFERENT ONE');
+  }
+});
+
+document.getElementById('clipRecordingIndicator').addEventListener('click', saveInstantReplayClip);
+
+
+
+// ---- "What should I play?" randomizer ----
+// Weighted toward games you haven't played, or haven't touched in a while,
+// so it's not just a flat coin flip across the whole library.
+let randomPickedGame = null;
+
+function pickRandomGame(){
+  const pool = games.filter(g => isFolderVisible(g.folder) && !g.pathMissing);
+  if(pool.length === 0) return null;
+  const weighted = pool.map(g => {
+    let w = 1;
+    if(!g.playtime){
+      w += 3;
+    }else if(g.lastPlayed){
+      const days = (Date.now() - g.lastPlayed) / 86400000;
+      w += Math.min(3, days / 14);
+    }else{
+      w += 2;
+    }
+    return { g, w };
+  });
+  const total = weighted.reduce((sum, x) => sum + x.w, 0);
+  let r = Math.random() * total;
+  for(const x of weighted){
+    r -= x.w;
+    if(r <= 0) return x.g;
+  }
+  return weighted[weighted.length - 1].g;
+}
+
+function showRandomPick(){
+  const game = pickRandomGame();
+  const banner = document.getElementById('randomPickBanner');
+  if(!game){
+    randomPickedGame = null;
+    banner.style.backgroundImage = '';
+    banner.classList.add('no-image');
+    document.getElementById('randomPickName').textContent = 'No eligible games found';
+    document.getElementById('randomPickSub').textContent = 'Add some games to your library first.';
+    document.getElementById('randomPickLaunchBtn').style.display = 'none';
+    document.getElementById('randomPickRerollBtn').style.display = 'none';
+  }else{
+    randomPickedGame = game;
+    const img = game.header || game.banner;
+    if(img){
+      banner.style.backgroundImage = `url("${img}")`;
+      banner.classList.remove('no-image');
+    }else{
+      banner.style.backgroundImage = '';
+      banner.classList.add('no-image');
+    }
+    document.getElementById('randomPickName').textContent = game.name;
+    document.getElementById('randomPickSub').textContent = game.playtime ? formatPlaytime(game.playtime) : 'Never played';
+    document.getElementById('randomPickLaunchBtn').style.display = '';
+    document.getElementById('randomPickRerollBtn').style.display = '';
+  }
+  document.getElementById('randomOverlay').classList.add('show');
+}
+
+document.getElementById('randomPickBtn').addEventListener('click', showRandomPick);
+document.getElementById('randomPickRerollBtn').addEventListener('click', showRandomPick);
+document.getElementById('randomPickCloseBtn').addEventListener('click', () => document.getElementById('randomOverlay').classList.remove('show'));
+addBackdropClose(document.getElementById('randomOverlay'));
+document.getElementById('randomPickLaunchBtn').addEventListener('click', () => {
+  if(randomPickedGame) launchGame(randomPickedGame);
+  document.getElementById('randomOverlay').classList.remove('show');
+});
+
 document.getElementById('detailCloseBtn').addEventListener('click', () => detailOverlay.classList.remove('show'));
 addBackdropClose(detailOverlay);
+
+document.getElementById('detailNotes').addEventListener('input', () => {
+  clearTimeout(detailNotesSaveTimer);
+  detailNotesSaveTimer = setTimeout(() => {
+    const game = games.find(g => g.id === currentDetailId);
+    if(!game) return;
+    const val = document.getElementById('detailNotes').value;
+    if(val){ game.notes = val; } else { delete game.notes; }
+    saveData();
+  }, 500);
+});
+document.getElementById('detailNotes').addEventListener('blur', () => {
+  clearTimeout(detailNotesSaveTimer);
+  const game = games.find(g => g.id === currentDetailId);
+  if(!game) return;
+  const val = document.getElementById('detailNotes').value;
+  if(val){ game.notes = val; } else { delete game.notes; }
+  saveData();
+});
 
 document.getElementById('detailLaunchBtn').addEventListener('click', () => {
   const game = games.find(g => g.id === currentDetailId);
@@ -1844,6 +2237,7 @@ document.getElementById('addBtn').addEventListener('click', () => {
   document.getElementById('modalTitle').textContent = 'ADD GAME';
   document.getElementById('fName').value = '';
   document.getElementById('fPath').value = '';
+  document.getElementById('fTags').value = '';
   modalColor = defaultGameColor();
   modalHeader = null;
   modalHeaderCustom = false;
@@ -1858,6 +2252,7 @@ addBackdropClose(overlay);
 document.getElementById('saveBtn').addEventListener('click', async () => {
   const name = document.getElementById('fName').value.trim();
   const path = document.getElementById('fPath').value.trim();
+  const tags = document.getElementById('fTags').value.split(',').map(t => t.trim()).filter(Boolean);
   if(!name){
     showToast('GAME NEEDS A NAME');
     return;
@@ -1866,12 +2261,13 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     const game = games.find(g => g.id === editingId);
     game.name = name;
     game.path = path;
+    game.tags = tags;
     delete game.color;
     game.header = modalHeader || null;
     game.headerCustom = modalHeaderCustom;
   }else{
     const folder = activeFolder !== 'all' ? activeFolder : '';
-    games.push({ id: Date.now().toString(), name, path, folder, header: modalHeader || null, headerCustom: modalHeaderCustom });
+    games.push({ id: Date.now().toString(), name, path, folder, tags, header: modalHeader || null, headerCustom: modalHeaderCustom });
   }
   await saveData();
   renderFolders();
@@ -2173,13 +2569,90 @@ document.getElementById('nextPageBtn').addEventListener('click', () => {
   currentPage++; render();
 });
 
+function switchStatsTab(tabName){
+  if(statsTab === tabName) return;
+  statsTab = tabName;
+  document.querySelectorAll('.stats-tab').forEach(t => t.classList.toggle('active', t.dataset.statsTab === tabName));
+  document.querySelectorAll('.stats-tabpanel').forEach(p => p.classList.toggle('active', p.dataset.statsPanel === tabName));
+  render();
+}
+document.getElementById('statsTabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.stats-tab');
+  if(btn) switchStatsTab(btn.dataset.statsTab);
+});
+
+function switchSettingsTab(tabName){
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+  document.querySelectorAll('.settings-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tabName));
+}
+document.getElementById('settingsTabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.settings-tab');
+  if(btn) switchSettingsTab(btn.dataset.tab);
+});
+
 document.getElementById('settingsBtn').addEventListener('click', () => {
+  switchSettingsTab('general');
   document.getElementById('settingsOverlay').classList.add('show');
 });
 document.getElementById('settingsCloseBtn').addEventListener('click', () => {
   document.getElementById('settingsOverlay').classList.remove('show');
 });
 addBackdropClose(document.getElementById('settingsOverlay'));
+
+document.getElementById('exportBackupBtn').addEventListener('click', async () => {
+  if(!window.electronAPI){
+    showToast('EXPORT ONLY WORKS IN THE APP');
+    return;
+  }
+  const payload = JSON.stringify({ games, folders, gamesFolder, theme, sortBy, perPage, accentColor, exportedAt: Date.now() }, null, 2);
+  const result = await window.electronAPI.exportLibraryData(payload);
+  if(result && result.ok){
+    showToast('BACKUP SAVED');
+  }else if(result && !result.canceled){
+    showToast('EXPORT FAILED');
+  }
+});
+
+document.getElementById('importBackupBtn').addEventListener('click', async () => {
+  if(!window.electronAPI){
+    showToast('IMPORT ONLY WORKS IN THE APP');
+    return;
+  }
+  const result = await window.electronAPI.importLibraryData();
+  if(!result || result.canceled) return;
+  if(!result.ok || !result.data || !Array.isArray(result.data.games)){
+    showToast('IMPORT FAILED — INVALID FILE');
+    return;
+  }
+  const confirmed = await showConfirm(
+    'This replaces your current library (games, folders, tags, and settings) with the backup file. This cannot be undone.',
+    { title: 'IMPORT BACKUP?', confirmLabel: 'Import', danger: true }
+  );
+  if(!confirmed) return;
+  const data = result.data;
+  games = data.games || [];
+  folders = data.folders || [];
+  gamesFolder = data.gamesFolder || '';
+  theme = data.theme || 'dark';
+  sortBy = data.sortBy || 'name-asc';
+  perPage = data.perPage || 24;
+  accentColor = data.accentColor || DEFAULT_ACCENT;
+  saveData();
+  applyTheme();
+  applyAccent(accentColor);
+  renderAccentPalette();
+  const sortSelect = document.getElementById('sortSelect');
+  if(sortSelect) sortSelect.value = sortBy;
+  const perPageSelect = document.getElementById('perPageSelect');
+  if(perPageSelect) perPageSelect.value = String(perPage);
+  activeFolder = 'all';
+  currentPage = 1;
+  renderFolders();
+  renderGamesFolder();
+  render();
+  document.getElementById('settingsOverlay').classList.remove('show');
+  showToast('LIBRARY RESTORED');
+});
 
 function computeStats(){
   // Exclude games sitting in a PIN-locked folder that hasn't been unlocked this session,
@@ -2213,7 +2686,23 @@ function computeStats(){
     .filter(f => f.count > 0)
     .sort((a,b) => b.count - a.count);
   const unfiledCount = visibleGames.filter(g => !g.folder).length;
-  return { totalSeconds, mostPlayed, thisWeek, lastWeek, gameCount: visibleGames.length, neverPlayed, topPlayed, folderBreakdown, unfiledCount, longestSession };
+
+  // Playtime trend: last 8 weeks, oldest first, bucketed by session start time.
+  const WEEKS = 8;
+  const weeklyTrend = Array.from({ length: WEEKS }, (_, i) => {
+    const weeksAgo = WEEKS - 1 - i;
+    const bucketEnd = now - weeksAgo * weekMs;
+    const bucketStart = bucketEnd - weekMs;
+    return { start: bucketStart, end: bucketEnd, seconds: 0 };
+  });
+  visibleGames.forEach(g => {
+    (g.sessions || []).forEach(s => {
+      const bucket = weeklyTrend.find(b => s.start >= b.start && s.start < b.end);
+      if(bucket) bucket.seconds += s.seconds;
+    });
+  });
+
+  return { totalSeconds, mostPlayed, thisWeek, lastWeek, gameCount: visibleGames.length, neverPlayed, topPlayed, folderBreakdown, unfiledCount, longestSession, weeklyTrend };
 }
 
 function renderStats(){
@@ -2230,17 +2719,160 @@ function renderStats(){
   `;
 
   const topList = document.getElementById('statsTopList');
+  const trendEl = document.getElementById('statsTrendChart');
+  const trendMax = Math.max(1, ...s.weeklyTrend.map(w => w.seconds));
+  trendEl.innerHTML = s.weeklyTrend.map(w => {
+    const pct = Math.max(2, Math.round((w.seconds / trendMax) * 100));
+    const label = new Date(w.start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return `<div class="trend-bar-col" title="${formatPlaytime(w.seconds)} week of ${label}">
+      <div class="trend-bar-track"><div class="trend-bar-fill" style="height:${pct}%"></div></div>
+      <span class="trend-bar-label">${label}</span>
+    </div>`;
+  }).join('');
   const topMax = s.topPlayed.length ? s.topPlayed[0].playtime : 0;
   topList.innerHTML = s.topPlayed.length
     ? s.topPlayed.map(g => {
         const pct = topMax ? Math.max(6, Math.round((g.playtime / topMax) * 100)) : 0;
         return `<li>
-          <div class="stats-bar-row"><span class="stats-bar-label">${escapeHtml(g.name)}</span><span class="stats-bar-value">${formatPlaytime(g.playtime)}</span></div>
+          <div class="stats-bar-row with-value"><span class="stats-bar-label">${escapeHtml(g.name)}</span><span class="stats-bar-value">${formatPlaytime(g.playtime)}</span></div>
           <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%"></div></div>
         </li>`;
       }).join('')
     : '<li class="stats-empty">No playtime recorded yet</li>';
 }
+
+// ---- Library Tools: orphan/duplicate detection + storage breakdown ----
+
+function formatBytes(bytes){
+  if(bytes === null || bytes === undefined) return '—';
+  if(bytes === 0) return '0 B';
+  const units = ['B','KB','MB','GB','TB'];
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  const val = bytes / Math.pow(1024, i);
+  return `${i === 0 || val >= 100 ? Math.round(val) : val.toFixed(1)} ${units[i]}`;
+}
+
+// Best-known folder for a game: the scan-recorded folderPath if we have one,
+// otherwise the exe's parent directory (mirrors the "open containing folder"
+// logic elsewhere). Steam/protocol entries have nothing local to measure.
+function getGameFolderPath(g){
+  if(g.folderPath) return g.folderPath;
+  if(g.path && !/^[a-z0-9.+-]+:\/\//i.test(g.path)){
+    return g.path.replace(/\\/g,'/').split('/').slice(0,-1).join('/');
+  }
+  return null;
+}
+
+function computeDuplicateGroups(){
+  const byName = new Map();
+  games.forEach(g => {
+    const key = normalizeGameName(g.name);
+    if(!key) return;
+    if(!byName.has(key)) byName.set(key, []);
+    byName.get(key).push(g);
+  });
+  return [...byName.values()].filter(group => group.length > 1);
+}
+
+async function renderTools(){
+  const orphans = games.filter(g => g.pathMissing);
+  const orphanList = document.getElementById('toolsOrphanList');
+  orphanList.innerHTML = orphans.length ? orphans.map(g => `
+    <li>
+      <div class="stats-bar-row">
+        <span class="stats-bar-label" title="${escapeHtml(g.path || '')}">${escapeHtml(g.name)}</span>
+        <button class="btn ghost" style="padding:5px 12px;font-size:10.5px;" data-tools-action="remove" data-id="${g.id}">Remove</button>
+      </div>
+    </li>`).join('') : '<li class="stats-empty">No orphaned games found — everything checks out.</li>';
+
+  const dupGroups = computeDuplicateGroups();
+  const dupList = document.getElementById('toolsDupList');
+  dupList.innerHTML = dupGroups.length ? dupGroups.map(group => `
+    <li>
+      <span class="stats-bar-label">${escapeHtml(group[0].name)} <span class="stats-bar-value">(${group.length} copies)</span></span>
+      <ul class="stats-list" style="gap:8px;margin-top:6px;">
+        ${group.map(g => `
+          <li>
+            <div class="stats-bar-row">
+              <span class="stats-bar-value" title="${escapeHtml(g.path || '')}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(g.path || 'no path set')}</span>
+              <button class="btn ghost" style="padding:5px 12px;font-size:10.5px;flex-shrink:0;" data-tools-action="remove" data-id="${g.id}">Remove</button>
+            </div>
+          </li>`).join('')}
+      </ul>
+    </li>`).join('') : '<li class="stats-empty">No likely duplicates found.</li>';
+
+  await renderToolsStorage();
+}
+
+async function renderToolsStorage(){
+  const listEl = document.getElementById('toolsStorageList');
+  const totalEl = document.getElementById('toolsStorageTotal');
+  const seen = new Set();
+  const entries = [];
+  games.forEach(g => {
+    const folder = getGameFolderPath(g);
+    if(!folder || seen.has(folder)) return;
+    seen.add(folder);
+    entries.push({ folder, name: g.name, id: g.id });
+  });
+
+  if(entries.length === 0){
+    listEl.innerHTML = '<li class="stats-empty">No local game folders to measure.</li>';
+    totalEl.textContent = '';
+    return;
+  }
+  if(!window.electronAPI || !window.electronAPI.getFolderSizes){
+    listEl.innerHTML = '<li class="stats-empty">Storage breakdown only works in the app.</li>';
+    totalEl.textContent = '';
+    return;
+  }
+
+  listEl.innerHTML = '<li class="stats-empty">Measuring folder sizes…</li>';
+  let sizes;
+  try {
+    sizes = await window.electronAPI.getFolderSizes(entries.map(e => e.folder));
+  } catch(e){
+    listEl.innerHTML = '<li class="stats-empty">Could not measure folder sizes.</li>';
+    return;
+  }
+
+  // Bail if the user has since navigated away from Library Tools — avoids
+  // stomping on whatever's rendered there now once this resolves.
+  if(activeFolder !== 'stats' || statsTab !== 'tools') return;
+
+  const rows = entries
+    .map(e => ({ ...e, bytes: sizes[e.folder] }))
+    .filter(e => e.bytes !== null && e.bytes !== undefined)
+    .sort((a, b) => b.bytes - a.bytes);
+
+  if(rows.length === 0){
+    listEl.innerHTML = '<li class="stats-empty">Could not measure any folders.</li>';
+    totalEl.textContent = '';
+    return;
+  }
+
+  const total = rows.reduce((sum, r) => sum + r.bytes, 0);
+  totalEl.textContent = `Total: ${formatBytes(total)} across ${rows.length} folder${rows.length === 1 ? '' : 's'}`;
+  const max = rows[0].bytes || 1;
+  listEl.innerHTML = rows.map(r => {
+    const pct = Math.max(3, Math.round((r.bytes / max) * 100));
+    return `<li>
+      <div class="stats-bar-row with-value">
+        <span class="stats-bar-label">${escapeHtml(r.name)}</span>
+        <span class="stats-bar-value">${formatBytes(r.bytes)}</span>
+        <button class="btn ghost" style="padding:5px 12px;font-size:10.5px;flex-shrink:0;" data-tools-action="remove" data-id="${r.id}" title="Remove from library">Remove</button>
+      </div>
+      <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%"></div></div>
+    </li>`;
+  }).join('');
+}
+
+document.getElementById('toolsPage').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-tools-action="remove"]');
+  if(!btn) return;
+  const game = games.find(g => g.id === btn.dataset.id);
+  if(game) deleteGame(game);
+});
 
 document.getElementById('darkModeBtn').addEventListener('click', () => {
   theme = 'dark';
@@ -2444,7 +3076,7 @@ document.addEventListener('keydown', (e) => {
   if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){
     e.preventDefault();
     const searchInput = document.getElementById('search');
-    if(activeFolder === 'stats' || activeFolder === 'downloads'){
+    if(activeFolder === 'stats' || activeFolder === 'tools'){
       activeFolder = 'all';
       currentPage = 1;
       renderFolders();
@@ -2455,9 +3087,9 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if(e.key === 'Escape'){
-    [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('settingsOverlay'), document.getElementById('pinOverlay')].forEach(o => o.classList.remove('show'));
+    [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('randomOverlay'), document.getElementById('settingsOverlay'), document.getElementById('pinOverlay')].forEach(o => o.classList.remove('show'));
     closeAllCompactMenus();
-    if(activeFolder === 'stats' || activeFolder === 'downloads'){
+    if(activeFolder === 'stats' || activeFolder === 'tools'){
       activeFolder = 'all';
       currentPage = 1;
       renderFolders();
@@ -2475,9 +3107,9 @@ document.addEventListener('keydown', (e) => {
   }
 
   // Grid keyboard navigation — only when no modal is open and focus isn't in a text field.
-  const anyModalOpen = [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('settingsOverlay'), document.getElementById('pinOverlay'), tutorialOverlay].some(o => o.classList.contains('show'));
+  const anyModalOpen = [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('randomOverlay'), document.getElementById('settingsOverlay'), document.getElementById('pinOverlay'), tutorialOverlay].some(o => o.classList.contains('show'));
   const typing = document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
-  if(anyModalOpen || typing || activeFolder === 'stats' || activeFolder === 'downloads') return;
+  if(anyModalOpen || typing || activeFolder === 'stats' || activeFolder === 'tools') return;
 
   const cards = Array.from(grid.querySelectorAll('.compact-card'));
   if(cards.length === 0) return;
@@ -2538,11 +3170,32 @@ if(window.electronAPI && window.electronAPI.onGameSessionEnded){
       }
       game.lastPlayed = Date.now();
       saveData();
+      if(currentlyPlayingId === game.id){
+        currentlyPlayingId = null;
+        stopInstantReplay();
+      }
       if(currentDetailId === game.id){
         document.getElementById('detailPlaytimeText').textContent = formatPlaytime(game.playtime);
         document.getElementById('detailLastPlayedText').textContent = formatLastPlayed(game.lastPlayed);
         renderSessionHistory(game);
       }
+    }
+  });
+}
+
+// Fires a couple seconds after launch, once the process has actually stuck
+// around (or, for Steam/protocol launches, after a best-effort delay) —
+// not the instant spawn() succeeds, since that's still "trying to launch".
+// This is what kicks off instant replay buffering.
+if(window.electronAPI && window.electronAPI.onGameLaunchConfirmed){
+  window.electronAPI.onGameLaunchConfirmed(({ exePath }) => {
+    const game = games.find(g => g.path === exePath);
+    // Guard against the game having already closed (or a different game
+    // having been launched) in the couple seconds before this fires.
+    if(game && currentlyPlayingId === game.id && !isReplayActive()){
+      startInstantReplay(game).then(() => {
+        if(isReplayActive()) showToast('INSTANT REPLAY BUFFERING STARTED');
+      });
     }
   });
 }

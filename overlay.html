@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body {
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 220px;
+    max-width: 420px;
+    padding: 10px 16px 10px 12px;
+    border-radius: 10px;
+    background: rgba(32,32,32,0.72);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.09);
+    border-left: 3px solid var(--accent, #107c10);
+    box-shadow: 0 4px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(.97);
+    transition: opacity .2s cubic-bezier(.1,.9,.2,1), transform .2s cubic-bezier(.1,.9,.2,1);
+    overflow: hidden;
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  #icon {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.08);
+  }
+  #icon svg { width: 16px; height: 16px; }
+  #icon.accent { background: var(--accent, #107c10); }
+  #icon.rec svg circle { fill: #ff4b4b; }
+
+  #text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  #title {
+    font: 600 13px/1.35 "Segoe UI Variable", "Segoe UI", -apple-system, sans-serif;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #subtitle {
+    font: 400 11.5px/1.3 "Segoe UI Variable", "Segoe UI", -apple-system, sans-serif;
+    color: rgba(255,255,255,.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #subtitle:empty { display: none; }
+
+  #bar {
+    position: absolute;
+    left: 0; bottom: 0;
+    height: 2px;
+    width: 100%;
+    background: var(--accent, rgba(255,255,255,.35));
+    transform-origin: left;
+    transform: scaleX(1);
+  }
+  #bar.animate {
+    transition: transform linear;
+    transform: scaleX(0);
+  }
+</style>
+</head>
+<body>
+<div id="toast">
+  <div id="icon"><svg id="iconSvg" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div id="text">
+    <div id="title"></div>
+    <div id="subtitle"></div>
+  </div>
+  <div id="bar"></div>
+</div>
+<script>
+  const { ipcRenderer } = require('electron');
+
+  const toastEl = document.getElementById('toast');
+  const iconEl = document.getElementById('icon');
+  const iconSvg = document.getElementById('iconSvg');
+  const titleEl = document.getElementById('title');
+  const subtitleEl = document.getElementById('subtitle');
+  const barEl = document.getElementById('bar');
+  let hideTimer = null;
+
+  const ICONS = {
+    clip: '<path d="M2 3.5C2 2.67 2.67 2 3.5 2h6.79c.4 0 .78.16 1.06.44l1.71 1.71c.28.28.44.66.44 1.06V12.5c0 .83-.67 1.5-1.5 1.5h-8A1.5 1.5 0 0 1 2 12.5v-9Z" stroke="#fff" stroke-width="1.1"/><path d="M6.3 6.7 9.4 8.5l-3.1 1.8V6.7Z" fill="#fff"/>',
+    record: '<circle cx="8" cy="8" r="4.5"/>',
+    info: '<circle cx="8" cy="8" r="6.4" stroke="#fff" stroke-width="1.1"/><path d="M8 7.3v4.1M8 4.9v.1" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>',
+    warn: '<path d="M8 2.3 14.3 13H1.7L8 2.3Z" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/><path d="M8 6.5v3M8 11v.1" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>'
+  };
+
+  ipcRenderer.on('overlay-toast', (event, payload) => {
+    const { title, subtitle, msg, duration, type, accent } = payload || {};
+    const dur = duration || 2600;
+
+    titleEl.textContent = title || msg || '';
+    subtitleEl.textContent = subtitle || '';
+
+    const kind = type && ICONS[type] ? type : 'info';
+    iconSvg.innerHTML = ICONS[kind];
+    iconEl.className = kind === 'clip' ? 'accent' : (kind === 'record' ? 'rec' : '');
+
+    toastEl.style.setProperty('--accent', accent || '#107c10');
+
+    toastEl.classList.add('show');
+
+    barEl.classList.remove('animate');
+    barEl.style.transform = 'scaleX(1)';
+    void barEl.offsetWidth;
+    barEl.style.transitionDuration = dur + 'ms';
+    barEl.classList.add('animate');
+
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => toastEl.classList.remove('show'), dur);
+  });
+</script>
+</body>
+</html>

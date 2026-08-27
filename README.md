@@ -8,7 +8,6 @@ A lightweight Electron desktop launcher for organizing and launching your games.
 - Custom game banners/artwork
 - Playtime tracking
 - Global show/hide shortcut (`Ctrl+Shift+M`)
-- Download games directly into library
 
 ## Install
 

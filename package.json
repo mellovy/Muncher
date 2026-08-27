@@ -1,6 +1,6 @@
 {
   "name": "muncher",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "MUNCHER - custom game launcher",
   "main": "main.js",
   "repository": {
@@ -19,19 +19,21 @@
     "appId": "com.mello.muncher",
     "productName": "Muncher",
     "asar": true,
-"compression": "maximum",
+    "compression": "maximum",
     "files": [
       "main.js",
-      "downloads.js",
-      "scraper.js",
       "preload.js",
       "launcher.html",
+      "overlay.html",
       "style.css",
       "muncher.ico"
     ],
+    "asarUnpack": [
+      "**/node_modules/ffmpeg-static/**"
+    ],
     "win": {
       "target": "nsis",
-      "icon": "build/muncher.ico"
+      "icon": "muncher.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -46,19 +48,12 @@
     ]
   },
   "dependencies": {
-    "axios": "^1.7.0",
-    "cheerio": "^1.0.0-rc.14",
     "electron-updater": "^6.8.9",
-    "extract-zip": "^2.0.1",
-    "webtorrent": "^2.5.15"
+    "ffmpeg-static": "^5.2.0"
   },
   "allowScripts": {
     "electron@37.10.3": true,
     "electron-winstaller@5.4.0": true,
-    "utp-native@2.5.3": true,
-    "bufferutil@4.1.0": true,
-    "utf-8-validate@6.0.6": true,
-    "node-datachannel@0.32.3": true,
-    "ip-set@3.0.0": true
+    "ffmpeg-static": true
   }
 }

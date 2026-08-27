@@ -13,10 +13,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fetchGameHeader: (gameName) => ipcRenderer.invoke('fetch-game-header', gameName),
   fetchImageData: (url) => ipcRenderer.invoke('fetch-image-data', url),
   checkPaths: (exePaths) => ipcRenderer.invoke('check-paths', exePaths),
+  getFolderSizes: (folderPaths) => ipcRenderer.invoke('get-folder-sizes', folderPaths),
+  getCaptureSources: () => ipcRenderer.invoke('get-capture-sources'),
+  saveClip: (gameName, arrayBuffers, clipsDir) => ipcRenderer.invoke('save-clip', gameName, arrayBuffers, clipsDir),
+  // Instant Replay v2 — main-process ffmpeg/gdigrab capture (see main.js).
+  startInstantReplayCapture: (maxSeconds, exePath) => ipcRenderer.invoke('start-instant-replay', maxSeconds, exePath),
+  stopInstantReplayCapture: () => ipcRenderer.invoke('stop-instant-replay'),
+  saveInstantReplayClip: (gameName, clipsDir, seconds, audioBuffers) => ipcRenderer.invoke('save-instant-replay-clip', gameName, clipsDir, seconds, audioBuffers),
+  showOverlayToast: (payload) => ipcRenderer.send('show-overlay-toast', payload),
+  openClipsFolder: (gameName, clipsDir) => ipcRenderer.invoke('open-clips-folder', gameName, clipsDir),
+  getDefaultClipsDir: () => ipcRenderer.invoke('get-default-clips-dir'),
+  onToggleClipRecording: (callback) => ipcRenderer.on('toggle-clip-recording', () => callback()),
+  onClipHotkeyUnavailable: (callback) => ipcRenderer.on('clip-hotkey-unavailable', () => callback()),
+  setClipHotkey: (accelerator) => ipcRenderer.invoke('set-clip-hotkey', accelerator),
   deleteGameFolder: (exePath, folderPath) => ipcRenderer.invoke('delete-game-folder', exePath, folderPath),
   
   // Game session tracking
   onGameSessionEnded: (callback) => ipcRenderer.on('game-session-ended', (event, data) => callback(data)),
+  onGameLaunchConfirmed: (callback) => ipcRenderer.on('game-launch-confirmed', (event, data) => callback(data)),
   
   // App version and updates
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
@@ -31,19 +45,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   promptQuitConfirm: (callback) => ipcRenderer.on('quit-confirm-request', () => callback()),
   respondQuitConfirm: (confirmed) => ipcRenderer.send('quit-confirm-response', confirmed),
 
-  // ---------- Download Manager ----------
-  downloadsGetAll: () => ipcRenderer.invoke('downloads-get-all'),
-  downloadsGetDefaultDir: () => ipcRenderer.invoke('downloads-get-default-dir'),
-  downloadsAddHttp: (opts) => ipcRenderer.invoke('downloads-add-http', opts),
-  downloadsAddTorrent: (opts) => ipcRenderer.invoke('downloads-add-torrent', opts),
-  downloadsScanPage: (url) => ipcRenderer.invoke('downloads-scan-page', url),
-  downloadsSearchSources: (query) => ipcRenderer.invoke('downloads-search-sources', query),
-  downloadsFetchDownloadLink: (pageUrl) => ipcRenderer.invoke('downloads-fetch-download-link', pageUrl),
-  downloadsPause: (id) => ipcRenderer.invoke('downloads-pause', id),
-  downloadsResume: (id) => ipcRenderer.invoke('downloads-resume', id),
-  downloadsCancel: (id) => ipcRenderer.invoke('downloads-cancel', id),
-  downloadsRemove: (id) => ipcRenderer.invoke('downloads-remove', id),
-  downloadsOpenFolder: (folderPath) => ipcRenderer.invoke('downloads-open-folder', folderPath),
-  onDownloadsUpdated: (callback) => ipcRenderer.on('downloads-updated', (event, data) => callback(data)),
-  onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (event, data) => callback(data))
+  // Library backup
+  exportLibraryData: (jsonString) => ipcRenderer.invoke('export-library-data', jsonString),
+  importLibraryData: () => ipcRenderer.invoke('import-library-data')
 });

@@ -1,0 +1,2 @@
+- clipping hotkey failing after being pressed once
+- add audio to clipping
