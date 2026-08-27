@@ -30,6 +30,14 @@
         <h2 id="folderTitle">ALL GAMES</h2>
         <p id="countLabel">0 games</p>
       </div>
+      <div class="clip-view-toggle" id="clipViewToggle" style="display:none;">
+        <button type="button" class="clip-view-btn" data-view="list" title="List view">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <button type="button" class="clip-view-btn" data-view="gallery" title="Gallery view">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </button>
+      </div>
     </header>
 
     <div class="toolbar">
@@ -123,6 +131,7 @@
           </div>
         </div>
       </div>
+
     </div>
 
   </main>
@@ -439,6 +448,18 @@
   </div>
 </div>
 
+<div class="overlay" id="promptOverlay">
+  <div class="modal confirm-modal">
+    <h2 id="promptTitle">RENAME</h2>
+    <p id="promptMessage" class="confirm-message"></p>
+    <input type="text" id="promptInput" class="prompt-input" maxlength="120">
+    <div class="modal-actions">
+      <button class="btn ghost" id="promptCancelBtn">Cancel</button>
+      <button class="btn" id="promptOkBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="randomOverlay">
   <div class="modal confirm-modal">
     <h2>WHAT SHOULD I PLAY?</h2>
@@ -526,7 +547,10 @@ let folders = [];
 let gamesFolder = '';
 let activeFolder = 'all';
 let statsTab = 'overview'; // sub-tab within the Library Stats page: 'overview' | 'tools'
+let expandedClipGroups = null; // Set of game names currently expanded in the Clip Gallery; null = not yet initialized (defaults to all expanded)
+let clipViewMode = 'list'; // 'list' | 'gallery' — persisted, see saveData/loadData
 let clipsDir = ''; // persisted setting; empty = use the app's default clips folder
+let clips = []; // array of clip objects
 let editingId = null;
 let theme = 'dark';
 let modalColor = null;
@@ -631,6 +655,51 @@ addBackdropClose(confirmOverlay, () => {
   confirmResolve = null;
 });
 
+// Electron does not implement window.prompt() — it silently returns null
+// every time, which is why rename previously appeared to do nothing no
+// matter what. This is a themed modal standing in for it, built the same
+// way showConfirm() is above.
+const promptOverlay = document.getElementById('promptOverlay');
+let promptResolve = null;
+function showPrompt(message, defaultValue, opts){
+  opts = opts || {};
+  document.getElementById('promptTitle').textContent = opts.title || 'RENAME';
+  document.getElementById('promptMessage').textContent = message;
+  const input = document.getElementById('promptInput');
+  input.value = defaultValue || '';
+  document.getElementById('promptOkBtn').textContent = opts.confirmLabel || 'Save';
+
+  promptOverlay.classList.add('show');
+  requestAnimationFrame(() => { input.focus(); input.select(); });
+
+  return new Promise((resolve) => {
+    promptResolve = (value) => resolve(value);
+  });
+}
+function closePrompt(value){
+  promptOverlay.classList.remove('show');
+  if(promptResolve) promptResolve(value);
+  promptResolve = null;
+}
+document.getElementById('promptOkBtn').addEventListener('click', () => {
+  const val = document.getElementById('promptInput').value.trim();
+  closePrompt(val === '' ? null : val);
+});
+document.getElementById('promptCancelBtn').addEventListener('click', () => closePrompt(null));
+document.getElementById('promptInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('promptOkBtn').click(); }
+  else if(e.key === 'Escape'){ e.preventDefault(); closePrompt(null); }
+});
+addBackdropClose(promptOverlay, () => closePrompt(null));
+
+document.getElementById('clipViewToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('.clip-view-btn');
+  if(!btn || btn.classList.contains('active')) return;
+  clipViewMode = btn.dataset.view;
+  saveData();
+  render();
+});
+
 function addBackdropClose(overlayEl, onClose){
   let downOnBackdrop = false;
   overlayEl.addEventListener('mousedown', (e) => { downOnBackdrop = (e.target === overlayEl); });
@@ -659,6 +728,8 @@ function loadData(){
     clipsDir = data?.clipsDir || '';
     recordClipAudio = data?.recordClipAudio || false;
     clipHotkeyAccelerator = data?.clipHotkeyAccelerator || 'CommandOrControl+Alt+C';
+    clips = data?.clips || [];
+    clipViewMode = data?.clipViewMode === 'gallery' ? 'gallery' : 'list';
   }catch(e){
     games = [];
     folders = [];
@@ -672,6 +743,8 @@ function loadData(){
     clipsDir = '';
     recordClipAudio = false;
     clipHotkeyAccelerator = 'CommandOrControl+Alt+C';
+    clips = [];
+    clipViewMode = 'list';
   }
   applyTheme();
   grid.classList.add('compact');
@@ -695,13 +768,13 @@ function loadData(){
   renderClipsDir();
   renderFolders();
   renderGamesFolder();
-  render();
+  render(); // render() itself calls renderClipGallery() when the Clip Gallery is the active view
   detectBrokenPaths();
 }
 
 function saveData(){
   try{
-    localStorage.setItem('launcher-data', JSON.stringify({ games, folders, gamesFolder, theme, sortBy, perPage, accentColor, replayEnabled, replayClipSeconds, clipsDir, recordClipAudio, clipHotkeyAccelerator }));
+    localStorage.setItem('launcher-data', JSON.stringify({ games, folders, gamesFolder, theme, sortBy, perPage, accentColor, replayEnabled, replayClipSeconds, clipsDir, recordClipAudio, clipHotkeyAccelerator, clips, clipViewMode }));
   }catch(e){
     showToast('COULD NOT SAVE');
   }
@@ -903,6 +976,13 @@ function renderFolders(){
     render();
   });
   folderList.appendChild(statsItem);
+
+      // Clip Gallery item
+      const clipGalleryItem = document.createElement('li');
+      clipGalleryItem.className = 'folder-item clip-gallery-nav-item' + (activeFolder === 'clips' ? ' active' : '');
+      clipGalleryItem.innerHTML = `<span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Clip Gallery</span><span class="right"><span class="count">${clips.length}</span></span>`;
+      clipGalleryItem.addEventListener('click', () => { activeFolder = 'clips'; currentPage = 1; renderFolders(); render(); });
+      folderList.appendChild(clipGalleryItem);
 
   // Divider between the top-level nav (All/Stats) and the folders section.
   // Favorites always lives in the folders section, pinned first, so the
@@ -1166,6 +1246,8 @@ function render(){
   const pagination = document.getElementById('pagination');
   const fab = document.getElementById('addBtn');
 
+  const clipViewToggle = document.getElementById('clipViewToggle');
+
   if(activeFolder === 'stats'){
     folderTitle.textContent = statsTab === 'tools' ? 'LIBRARY TOOLS' : 'LIBRARY STATS';
     countLabel.textContent = statsTab === 'tools' ? 'Clean up disk usage, orphaned games, and duplicates' : 'An overview of your library and play habits';
@@ -1175,6 +1257,7 @@ function render(){
     emptyState.style.display = 'none';
     pagination.style.display = 'none';
     if(fab) fab.style.display = 'none';
+    if(clipViewToggle) clipViewToggle.style.display = 'none';
     statsPage.style.display = 'block';
     if(statsTab === 'tools'){
       renderTools();
@@ -1183,6 +1266,26 @@ function render(){
     }
     return;
   }
+  else if(activeFolder === 'clips'){
+    // Show clip gallery in the main area
+    folderTitle.textContent = 'CLIP GALLERY';
+    countLabel.textContent = clips.length + ' clip' + (clips.length === 1 ? '' : 's');
+    if(toolbar) toolbar.style.display = 'none';
+    if(teeth) teeth.style.display = 'none';
+    grid.style.display = 'block';
+    emptyState.style.display = 'none';
+    pagination.style.display = 'none';
+    if(fab) fab.style.display = 'none';
+    statsPage.style.display = 'none';
+    if(clipViewToggle){
+      clipViewToggle.style.display = clips.length ? 'flex' : 'none';
+      clipViewToggle.querySelectorAll('.clip-view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === clipViewMode));
+    }
+
+    renderClipGallery(grid);
+    return;
+  }
+  if(clipViewToggle) clipViewToggle.style.display = 'none';
   if(toolbar) toolbar.style.display = '';
   if(teeth) teeth.style.display = '';
   grid.style.display = '';
@@ -2010,6 +2113,21 @@ async function saveInstantReplayClip(){
     res = { ok: false, error: e.message || String(e) };
   }
   if(res && res.ok){
+    // Add the clip to our clips array
+    const newClip = {
+      id: Date.now().toString(),
+      name: `${gameName} clip`,
+      gameName: gameName,
+      path: res.filePath, // The save function returns { ok: true, filePath }
+      duration: replayClipSeconds
+    };
+    clips.push(newClip);
+    saveData();
+    // Make sure the game this clip belongs to is expanded so the new clip
+    // is actually visible if the gallery happens to be open right now.
+    if(expandedClipGroups) expandedClipGroups.add(gameName);
+    if(activeFolder === 'clips') render();
+
     clipToast(`LAST ${formatClipLength(replayClipSeconds).toUpperCase()} SAVED`, {
       actionLabel: 'Open folder',
       onAction: () => window.electronAPI.openClipsFolder(gameName, clipsDir),
@@ -2741,6 +2859,215 @@ function renderStats(){
     : '<li class="stats-empty">No playtime recorded yet</li>';
 }
 
+// Single source of truth for the Clip Gallery. Renders into whatever
+// container is passed in (the main grid, when activeFolder === 'clips'),
+// grouped into per-game folders that can be expanded/collapsed. Every
+// clip action (play/rename/delete) funnels back through render(), so
+// there's exactly one code path that can go stale — not three.
+function renderClipGallery(container){
+  if(!container) return;
+
+  if(clips.length === 0){
+    container.innerHTML = '<p class="empty-clip-msg">No clips saved yet. Record some clips to see them here.</p>';
+    return;
+  }
+
+  // Group clips by game name, preserving each group's most recent clip
+  // first and sorting groups by their most recently added clip.
+  const clipsByGame = {};
+  clips.forEach(clip => {
+    const gameName = clip.gameName || 'Unknown Game';
+    if(!clipsByGame[gameName]) clipsByGame[gameName] = [];
+    clipsByGame[gameName].push(clip);
+  });
+  const gameNames = Object.keys(clipsByGame).sort((a, b) => a.localeCompare(b));
+
+  // Default every folder to expanded the first time we ever render, then
+  // remember the user's collapse/expand choices across re-renders.
+  if(!expandedClipGroups){
+    expandedClipGroups = new Set(gameNames);
+  }
+
+  let html = '';
+  for(const gameName of gameNames){
+    const gameClips = clipsByGame[gameName];
+    const isOpen = expandedClipGroups.has(gameName);
+    const listClass = clipViewMode === 'gallery' ? 'clip-list gallery' : 'clip-list';
+    html += `<div class="clip-game-group${isOpen ? ' open' : ''}" data-game-name="${escapeHtml(gameName)}">
+      <button type="button" class="clip-game-title" data-action="toggle-group">
+        <svg class="clip-folder-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+        <span class="clip-game-name">${escapeHtml(gameName)}</span>
+        <span class="clip-game-count">${gameClips.length} clip${gameClips.length === 1 ? '' : 's'}</span>
+        <svg class="clip-group-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <div class="${listClass}"${isOpen ? '' : ' style="display:none;"'}>`;
+
+    gameClips.forEach(clip => {
+      html += clipViewMode === 'gallery' ? renderClipCard(clip) : renderClipRow(clip);
+    });
+
+    html += `</div></div>`;
+  }
+
+  container.innerHTML = html;
+
+  // Gallery-mode thumbnails: a muted <video> seeked to a moment just past
+  // the start, so the browser paints a real frame from the clip instead of
+  // sitting on a black rectangle. No ffmpeg/extraction pipeline needed —
+  // the browser already knows how to decode the file, this just asks it
+  // to render one frame as a poster.
+  if(clipViewMode === 'gallery'){
+    container.querySelectorAll('.clip-card-thumb video').forEach(video => {
+      video.addEventListener('loadedmetadata', () => {
+        try { video.currentTime = Math.min(0.5, (video.duration || 1) / 4); } catch(e) {}
+      }, { once: true });
+    });
+  }
+
+  // Event delegation on the container itself. The container (the main
+  // grid element) persists across renders — only its innerHTML is
+  // replaced — so we guard with a dataset flag to bind this listener at
+  // most once ever, instead of stacking a new one on every re-render.
+  if(!container.dataset.clipGalleryBound){
+    container.addEventListener('click', (e) => handleClipGalleryClick(e, container));
+    container.dataset.clipGalleryBound = '1';
+  }
+}
+
+function renderClipRow(clip){
+  const clipName = clip.name || 'Unnamed Clip';
+  const duration = clip.duration ? formatClipLength(clip.duration) : 'Unknown';
+  return `
+    <div class="clip-item" data-clip-id="${clip.id}">
+      <div class="clip-info">
+        <span class="clip-name">${escapeHtml(clipName)}</span>
+        <span class="clip-duration">${duration}</span>
+      </div>
+      <div class="clip-actions">
+        <button class="clip-action-btn" data-action="play" data-clip-id="${clip.id}" title="Play">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="clip-action-btn" data-action="rename" data-clip-id="${clip.id}" title="Rename">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button class="clip-action-btn danger" data-action="delete" data-clip-id="${clip.id}" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderClipCard(clip){
+  const clipName = clip.name || 'Unnamed Clip';
+  const duration = clip.duration ? formatClipLength(clip.duration) : 'Unknown';
+  // file:// works fine here since these are local paths written by main.js's
+  // save-clip/save-instant-replay-clip handlers — no remote content involved.
+  const src = clip.path ? `file://${clip.path.replace(/\\/g, '/')}` : '';
+  return `
+    <div class="clip-card" data-clip-id="${clip.id}">
+      <div class="clip-card-thumb" data-action="play" data-clip-id="${clip.id}" title="Play">
+        ${src ? `<video src="${src}" muted preload="metadata"></video>` : ''}
+        <span class="clip-card-duration">${duration}</span>
+        <div class="clip-card-play">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
+      <div class="clip-card-body">
+        <span class="clip-card-name" title="${escapeHtml(clipName)}">${escapeHtml(clipName)}</span>
+        <div class="clip-card-actions">
+          <button class="clip-action-btn" data-action="rename" data-clip-id="${clip.id}" title="Rename">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+          <button class="clip-action-btn danger" data-action="delete" data-clip-id="${clip.id}" title="Delete">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Delegated click handler for the clip gallery container. Bound once ever
+// (see the dataset guard above) since the container node itself persists
+// across renders — only its children are replaced.
+async function handleClipGalleryClick(e){
+  const groupToggle = e.target.closest('[data-action="toggle-group"]');
+  if(groupToggle){
+    const group = groupToggle.closest('.clip-game-group');
+    const gameName = group.dataset.gameName;
+    if(expandedClipGroups.has(gameName)) expandedClipGroups.delete(gameName);
+    else expandedClipGroups.add(gameName);
+    group.classList.toggle('open');
+    const list = group.querySelector('.clip-list');
+    if(list) list.style.display = expandedClipGroups.has(gameName) ? '' : 'none';
+    return;
+  }
+
+  const playBtn = e.target.closest('[data-action="play"]');
+  if(playBtn){
+    const clip = clips.find(c => c.id === playBtn.dataset.clipId);
+    if(clip && window.electronAPI && window.electronAPI.playClip){
+      await window.electronAPI.playClip(clip.path);
+    }
+    return;
+  }
+
+  const renameBtn = e.target.closest('[data-action="rename"]');
+  if(renameBtn){
+    renameClip(renameBtn.dataset.clipId);
+    return;
+  }
+
+  const deleteBtn = e.target.closest('[data-action="delete"]');
+  if(deleteBtn){
+    deleteClip(deleteBtn.dataset.clipId);
+    return;
+  }
+}
+
+function renameClip(clipId){
+  const clip = clips.find(c => c.id === clipId);
+  if(!clip) return;
+
+  const currentName = clip.name || '';
+  showPrompt('Enter a new name for this clip:', currentName, { title: 'RENAME CLIP', confirmLabel: 'Rename' }).then((newName) => {
+    if(newName === null) return; // cancelled
+    clip.name = newName;
+    saveData();
+    render(); // re-render whatever's currently on screen so the new name shows immediately
+    showToast('CLIP RENAMED');
+  });
+}
+
+function deleteClip(clipId){
+  const clip = clips.find(c => c.id === clipId);
+  if(!clip) return;
+
+  showConfirm(`Delete "${clip.name || 'this clip'}"?`, {
+    title: 'DELETE CLIP?',
+    confirmLabel: 'Delete'
+  }).then(async confirmed => {
+    if(!confirmed) return;
+
+    // Delete the file first — if it fails, don't drop the clip from the
+    // library, so the user isn't left with a phantom reference and no way
+    // to retry.
+    if(window.electronAPI && window.electronAPI.deleteClip && clip.path){
+      const result = await window.electronAPI.deleteClip(clip.path);
+      if(!result.ok){
+        showToast(`COULD NOT DELETE CLIP: ${result.error}`);
+        return;
+      }
+    }
+
+    clips = clips.filter(c => c.id !== clipId);
+    saveData();
+    render(); // re-render immediately so the deleted clip disappears without navigating away
+    showToast('CLIP DELETED');
+  });
+}
+
 // ---- Library Tools: orphan/duplicate detection + storage breakdown ----
 
 function formatBytes(bytes){
@@ -3087,7 +3414,8 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if(e.key === 'Escape'){
-    [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('randomOverlay'), document.getElementById('settingsOverlay'), document.getElementById('pinOverlay')].forEach(o => o.classList.remove('show'));
+    [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, promptOverlay, document.getElementById('randomOverlay'), document.getElementById('settingsOverlay'), document.getElementById('pinOverlay')].forEach(o => o.classList.remove('show'));
+    if(promptResolve){ promptResolve(null); promptResolve = null; }
     closeAllCompactMenus();
     if(activeFolder === 'stats' || activeFolder === 'tools'){
       activeFolder = 'all';
@@ -3107,7 +3435,7 @@ document.addEventListener('keydown', (e) => {
   }
 
   // Grid keyboard navigation — only when no modal is open and focus isn't in a text field.
-  const anyModalOpen = [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, document.getElementById('randomOverlay'), document.getElementById('settingsOverlay'), document.getElementById('pinOverlay'), tutorialOverlay].some(o => o.classList.contains('show'));
+  const anyModalOpen = [overlay, folderOverlay, detailOverlay, cropOverlay, confirmOverlay, promptOverlay, document.getElementById('randomOverlay'), document.getElementById('settingsOverlay'), document.getElementById('pinOverlay'), tutorialOverlay].some(o => o.classList.contains('show'));
   const typing = document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
   if(anyModalOpen || typing || activeFolder === 'stats' || activeFolder === 'tools') return;
 

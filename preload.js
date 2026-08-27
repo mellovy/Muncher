@@ -36,14 +36,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   onUpdateStatus: (callback) => ipcRenderer.on('update-status', (event, data) => callback(data)),
-  
+
   // Update prompts
   promptUpdate: (callback) => ipcRenderer.on('update-prompt', (event, data) => callback(data)),
   respondUpdate: (action) => ipcRenderer.send('update-response', action),
-  
+
   // Quit confirmation
   promptQuitConfirm: (callback) => ipcRenderer.on('quit-confirm-request', () => callback()),
   respondQuitConfirm: (confirmed) => ipcRenderer.send('quit-confirm-response', confirmed),
+
+  // Clip gallery functions
+  playClip: (filePath) => ipcRenderer.invoke('play-clip', filePath),
+  deleteClip: (filePath) => ipcRenderer.invoke('delete-clip', filePath),
 
   // Library backup
   exportLibraryData: (jsonString) => ipcRenderer.invoke('export-library-data', jsonString),
